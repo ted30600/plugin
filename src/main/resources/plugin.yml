@@ -1,0 +1,17 @@
+name: ZombieLogin
+version: 1.0.0
+main: fr.ted30600.zombielogin.ZombieLoginPlugin
+api-version: '1.21'
+author: ted30600
+description: Simple password login/register plugin for Paper 1.21.10
+commands:
+  login:
+    description: Log into your account
+    usage: /login <password>
+  register:
+    description: Register your account
+    usage: /register <password> <password>
+permissions:
+  zombielogin.admin:
+    description: Manage ZombieLogin
+    default: op
