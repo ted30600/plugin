@@ -1,0 +1,17 @@
+# ZombieLogin configuration
+messages:
+  login-required: "&cTu dois te connecter avec &e/login <mot de passe>&c."
+  register-required: "&eBienvenue ! &7Utilise &a/register <mot de passe> <mot de passe> &7pour créer ton compte."
+  login-success: "&aConnexion réussie !"
+  register-success: "&aCompte créé et connexion réussie !"
+  wrong-password: "&cMot de passe incorrect."
+  password-mismatch: "&cLes mots de passe ne correspondent pas."
+  already-registered: "&cTu es déjà enregistré. Utilise /login <mot de passe>."
+  not-registered: "&cTu n'es pas enregistré. Utilise /register <mot de passe> <mot de passe>."
+  usage-login: "&eUtilise : /login <mot de passe>"
+  usage-register: "&eUtilise : /register <mot de passe> <mot de passe>"
+  session-expired: "&cTa session a expiré. Connecte-toi avec /login <mot de passe>."
+settings:
+  kick-after-seconds: 60
+  session-timeout-minutes: 30
+  min-password-length: 4
