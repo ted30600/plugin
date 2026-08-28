@@ -1,0 +1,13 @@
+name: NovaStreamItems
+version: 1.0.0
+main: fr.novastream.items.NovaStreamItems
+api-version: '1.21'
+author: NovaStream
+commands:
+  novaitems:
+    description: Give custom NovaStreamItems
+    usage: /novaitems give <item> [joueur] [quantité]
+    permission: novastreamitems.admin
+permissions:
+  novastreamitems.admin:
+    default: op
