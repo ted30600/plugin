@@ -1,4 +1,4 @@
-# ZombieLogin configuration
+# UltraLogin configuration
 messages:
   login-required: "&cTu dois te connecter avec &e/login <mot de passe>&c."
   register-required: "&eBienvenue ! &7Utilise &a/register <mot de passe> <mot de passe> &7pour créer ton compte."
