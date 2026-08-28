@@ -1,4 +1,4 @@
-name: ZombieLogin
+name: UltraLogin
 version: 1.0.0
 main: fr.ted30600.zombielogin.ZombieLoginPlugin
 api-version: '1.21'
@@ -12,6 +12,6 @@ commands:
     description: Register your account
     usage: /register <password> <password>
 permissions:
-  zombielogin.admin:
-    description: Manage ZombieLogin
+  ultralogin.admin:
+    description: Manage UltraLogin
     default: op
