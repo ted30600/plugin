@@ -1,37 +1,69 @@
 package fr.ted30600.zombielogin;
 
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public final class PasswordStore {
-    private final Map<UUID, String> hashes = new HashMap<>();
+    private final JavaPlugin plugin;
     private final SecureRandom random = new SecureRandom();
+    private final File file;
+    private FileConfiguration data;
+
+    public PasswordStore(JavaPlugin plugin) {
+        this.plugin = plugin;
+        this.file = new File(plugin.getDataFolder(), "players.yml");
+        load();
+    }
+
+    private void load() {
+        if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {
+            plugin.getLogger().warning("Impossible de créer le dossier du plugin.");
+        }
+        data = YamlConfiguration.loadConfiguration(file);
+    }
 
     public boolean isRegistered(UUID uuid) {
-        return hashes.containsKey(uuid);
+        return data.contains("players." + uuid);
     }
 
     public void register(UUID uuid, String password) {
         byte[] salt = new byte[16];
         random.nextBytes(salt);
-        hashes.put(uuid, encode(salt, sha256(salt, password)));
+        data.set("players." + uuid, encode(salt, sha256(salt, password)));
+        save();
     }
 
     public boolean verify(UUID uuid, String password) {
-        String stored = hashes.get(uuid);
+        String stored = data.getString("players." + uuid);
         if (stored == null) return false;
         String[] parts = stored.split(":", 2);
         if (parts.length != 2) return false;
-        byte[] salt = Base64.getDecoder().decode(parts[0]);
-        byte[] expected = Base64.getDecoder().decode(parts[1]);
-        byte[] actual = sha256(salt, password);
-        return MessageDigest.isEqual(expected, actual);
+        try {
+            byte[] salt = Base64.getDecoder().decode(parts[0]);
+            byte[] expected = Base64.getDecoder().decode(parts[1]);
+            byte[] actual = sha256(salt, password);
+            return MessageDigest.isEqual(expected, actual);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private void save() {
+        try {
+            data.save(file);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Impossible de sauvegarder les comptes: " + e.getMessage());
+        }
     }
 
     private String encode(byte[] salt, byte[] hash) {
