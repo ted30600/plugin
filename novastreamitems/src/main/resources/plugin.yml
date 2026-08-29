@@ -1,13 +1,16 @@
 name: NovaStreamItems
-version: 1.0.0
-main: fr.novastream.items.NovaStreamItems
+version: 2.0.0
+main: fr.gradegear.GradeGearPlugin
 api-version: '1.21'
 author: NovaStream
+description: Équipements NovaStream par grades : outils, armures et bloc custom.
 commands:
-  novaitems:
-    description: Give custom NovaStreamItems
-    usage: /novaitems give <item> [joueur] [quantité]
+  customitems:
+    description: Donne et administre les objets NovaStream Items.
+    usage: /customitems <list|give|pack|reload>
+    aliases: [nsi, novastreamitems]
     permission: novastreamitems.admin
 permissions:
   novastreamitems.admin:
+    description: Autorise l'utilisation des commandes NovaStream Items.
     default: op

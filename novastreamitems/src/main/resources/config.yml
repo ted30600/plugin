@@ -1,0 +1,8 @@
+# NovaStream Items - configuration du pack de ressources
+resource-pack-url: ""
+
+# Le plugin tente d'envoyer le pack automatiquement à chaque connexion
+send-pack-on-join: true
+
+# Utilisé pour la fenêtre de téléchargement du pack
+resource-pack-prompt: "Télécharge le pack NovaStream Items pour voir les textures personnalisées."

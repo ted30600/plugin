@@ -1,22 +1,31 @@
-# NovaStreamItems
+# NovaStream Items 2.0
 
-Plugin Paper 1.21.10 / Java 21 pour créer des items custom avec resource pack.
+Recréation du JAR NovaStream Items fourni, avec **32 objets** : 4 grades × 8 catégories.
 
-## Item exemple
+### Grades
+- Commun
+- Rare
+- Épique
+- Légendaire
 
-`paladium_pickaxe` : pioche en diamant technique avec modèle custom `NovaStreamItems`.
+### Équipement
+- Pioche
+- Épée
+- Hache
+- Casque
+- Plastron
+- Jambières
+- Bottes
+- Bloc
 
-Commande :
+IDs : `commun_pioche`, `rare_pioche`, `epique_pioche`, `legendaire_pioche`, etc.
 
-`/novaitems give paladium_pickaxe [joueur] [quantité]`
+### Commandes
+- `/customitems list`
+- `/customitems give <joueur> <objet> [quantité]`
+- `/customitems pack`
+- `/customitems reload`
 
-## Resource pack
+Alias : `/nsi`, `/novastreamitems`.
 
-Le dossier `resourcepack/` contient la base du pack. Le serveur doit distribuer ce pack aux joueurs (ou les joueurs peuvent l'installer manuellement). Pour que le modèle de la pioche soit visible, le pack doit être installé.
-
-## Ajouter d'autres items
-
-1. Ajouter un identifiant dans le plugin.
-2. Créer une définition d'item dans `resourcepack/assets/novastreamitems/items/`.
-3. Créer le modèle dans `resourcepack/assets/novastreamitems/models/item/`.
-4. Ajouter la texture PNG dans `resourcepack/assets/novastreamitems/textures/item/`.
+Le resource pack est généré au build avec tous les modèles nécessaires. Il faut renseigner `resource-pack-url` dans `config.yml` avec une URL HTTP(S) directe vers le ZIP si tu veux l'envoyer automatiquement aux joueurs.
