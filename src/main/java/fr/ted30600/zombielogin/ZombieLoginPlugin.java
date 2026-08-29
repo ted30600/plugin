@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
-    private final PasswordStore passwords = new PasswordStore();
+    private PasswordStore passwords;
     private final Set<UUID> authenticated = new HashSet<>();
     private final Map<UUID, Location> loginLocations = new HashMap<>();
     private final Map<UUID, BukkitTask> kickTasks = new HashMap<>();
@@ -35,59 +35,75 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         cfg = getConfig();
+        passwords = new PasswordStore(this);
         Bukkit.getPluginManager().registerEvents(this, this);
-        getCommand("login").setExecutor((sender, command, label, args) -> {
-            if (!(sender instanceof Player player)) return true;
-            if (args.length != 1) { msg(player, "usage-login"); return true; }
-            if (!passwords.isRegistered(player.getUniqueId())) { msg(player, "not-registered"); return true; }
-            if (!passwords.verify(player.getUniqueId(), args[0])) { msg(player, "wrong-password"); return true; }
-            authenticate(player);
-            msg(player, "login-success");
-            return true;
-        });
-        getCommand("register").setExecutor((sender, command, label, args) -> {
-            if (!(sender instanceof Player player)) return true;
-            if (args.length != 2) { msg(player, "usage-register"); return true; }
-            if (passwords.isRegistered(player.getUniqueId())) { msg(player, "already-registered"); return true; }
-            int min = cfg.getInt("settings.min-password-length", 4);
-            if (args[0].length() < min) {
-                player.sendMessage(Component.text("Mot de passe trop court (minimum " + min + " caractères).", NamedTextColor.RED));
+
+        if (getCommand("login") != null) {
+            getCommand("login").setExecutor((sender, command, label, args) -> {
+                if (!(sender instanceof Player player)) return true;
+                if (args.length != 1) { msg(player, "usage-login"); return true; }
+                UUID uuid = player.getUniqueId();
+                if (!passwords.isRegistered(uuid)) { msg(player, "not-registered"); return true; }
+                if (!passwords.verify(uuid, args[0])) { msg(player, "wrong-password"); return true; }
+                authenticate(player);
+                msg(player, "login-success");
                 return true;
-            }
-            if (!args[0].equals(args[1])) { msg(player, "password-mismatch"); return true; }
-            passwords.register(player.getUniqueId(), args[0]);
-            authenticate(player);
-            msg(player, "register-success");
-            return true;
-        });
+            });
+        }
+
+        if (getCommand("register") != null) {
+            getCommand("register").setExecutor((sender, command, label, args) -> {
+                if (!(sender instanceof Player player)) return true;
+                if (args.length != 2) { msg(player, "usage-register"); return true; }
+                UUID uuid = player.getUniqueId();
+                if (passwords.isRegistered(uuid)) { msg(player, "already-registered"); return true; }
+                int min = cfg.getInt("settings.min-password-length", 4);
+                if (args[0].length() < min) {
+                    player.sendMessage(Component.text("Mot de passe trop court (minimum " + min + " caractères).", NamedTextColor.RED));
+                    return true;
+                }
+                if (!args[0].equals(args[1])) { msg(player, "password-mismatch"); return true; }
+                passwords.register(uuid, args[0]);
+                authenticate(player);
+                msg(player, "register-success");
+                return true;
+            });
+        }
+
+        getLogger().info("UltraLogin activé - comptes persistants dans players.yml.");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        authenticated.remove(player.getUniqueId());
-        loginLocations.put(player.getUniqueId(), player.getLocation().clone());
+        UUID uuid = player.getUniqueId();
+        authenticated.remove(uuid);
+        loginLocations.put(uuid, player.getLocation().clone());
         player.setGameMode(GameMode.ADVENTURE);
         player.setInvulnerable(true);
         player.sendMessage(Component.text("==============================", NamedTextColor.DARK_GRAY));
-        if (passwords.isRegistered(player.getUniqueId())) msg(player, "login-required");
+        if (passwords.isRegistered(uuid)) msg(player, "login-required");
         else msg(player, "register-required");
         player.sendMessage(Component.text("==============================", NamedTextColor.DARK_GRAY));
 
         int seconds = cfg.getInt("settings.kick-after-seconds", 60);
-        kickTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (!authenticated.contains(player.getUniqueId()) && player.isOnline())
+        BukkitTask oldTask = kickTasks.remove(uuid);
+        if (oldTask != null) oldTask.cancel();
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(this, () -> {
+            if (!authenticated.contains(uuid) && player.isOnline()) {
                 player.kick(Component.text("Temps de connexion dépassé.", NamedTextColor.RED));
-        }, seconds * 20L));
+            }
+        }, seconds * 20L);
+        kickTasks.put(uuid, task);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        UUID id = event.getPlayer().getUniqueId();
-        authenticated.remove(id);
-        loginLocations.remove(id);
-        sessionExpiry.remove(id);
-        BukkitTask task = kickTasks.remove(id);
+        UUID uuid = event.getPlayer().getUniqueId();
+        authenticated.remove(uuid);
+        loginLocations.remove(uuid);
+        sessionExpiry.remove(uuid);
+        BukkitTask task = kickTasks.remove(uuid);
         if (task != null) task.cancel();
     }
 
@@ -103,16 +119,16 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
     }
 
     private void authenticate(Player player) {
-        UUID id = player.getUniqueId();
-        authenticated.add(id);
-        Location loc = loginLocations.remove(id);
-        if (loc != null) player.teleport(loc);
+        UUID uuid = player.getUniqueId();
+        authenticated.add(uuid);
+        Location location = loginLocations.remove(uuid);
+        if (location != null) player.teleport(location);
         player.setInvulnerable(false);
         player.setGameMode(GameMode.SURVIVAL);
-        BukkitTask task = kickTasks.remove(id);
+        BukkitTask task = kickTasks.remove(uuid);
         if (task != null) task.cancel();
         long minutes = cfg.getLong("settings.session-timeout-minutes", 30);
-        sessionExpiry.put(id, System.currentTimeMillis() + minutes * 60_000L);
+        sessionExpiry.put(uuid, System.currentTimeMillis() + minutes * 60_000L);
     }
 
     private void msg(Player player, String key) {
