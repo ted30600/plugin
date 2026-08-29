@@ -4,294 +4,33 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
-import org.bukkit.enchantments.Enchantment;
+import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public final class GradeGearPlugin extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
-    private static final String EMBEDDED_PACK = "resource-pack/NovaStream-Items-resource-pack.zip";
-    private static final String PREFIX = ChatColor.DARK_GRAY + "[" + ChatColor.AQUA + "NovaStream Items" + ChatColor.DARK_GRAY + "] " + ChatColor.RESET;
-
     private final Map<String, Definition> definitions = new LinkedHashMap<>();
     private NamespacedKey itemIdKey;
-
-    @Override
-    public void onEnable() {
-        itemIdKey = new NamespacedKey(this, "item_id");
-        saveResource(EMBEDDED_PACK, false);
-        loadDefinitions();
-        Bukkit.getPluginManager().registerEvents(this, this);
-
-        if (getCommand("customitems") != null) {
-            getCommand("customitems").setExecutor(this);
-            getCommand("customitems").setTabCompleter(this);
-        }
-
-        registerRecipes();
-        getLogger().info("NovaStream Items activé : " + definitions.size() + " objets personnalisés.");
-        getLogger().info("Pack de ressources intégré : " + new File(getDataFolder(), EMBEDDED_PACK).getPath());
-        if (getResourcePackUrl().isBlank()) {
-            getLogger().warning("Aucune URL de pack configurée. Définis resource-pack-url dans config.yml.");
-        }
-    }
-
-    @Override
-    public void onDisable() {
-        definitions.clear();
-    }
-
-    private void loadDefinitions() {
-        definitions.clear();
-        for (Grade grade : Grade.values()) {
-            for (Category category : Category.values()) {
-                String id = grade.key + "_" + category.key;
-                int modelData = 1000 + grade.ordinal() * 100 + category.ordinal() + 1;
-                definitions.put(id, new Definition(id, grade.displayName + " " + category.displayName,
-                        category.material, modelData, grade, category));
-            }
-        }
-    }
-
-    private void registerRecipes() {
-        for (Definition definition : definitions.values()) {
-            NamespacedKey key = new NamespacedKey(this, "recipe_" + definition.id);
-            Bukkit.removeRecipe(key);
-            ShapedRecipe recipe = new ShapedRecipe(key, createItem(definition));
-            recipe.shape(definition.category.recipeShape);
-            recipe.setIngredient('G', definition.grade.recipeMaterial);
-            recipe.setIngredient('S', Material.STICK);
-            Bukkit.addRecipe(recipe);
-        }
-    }
-
-    private ItemStack createItem(Definition definition) {
-        ItemStack item = new ItemStack(definition.category.material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) return item;
-
-        meta.setDisplayName(definition.grade.color + definition.displayName);
-        CustomModelDataComponent customModelData = meta.getCustomModelDataComponent();
-        customModelData.setStrings(List.of(definition.id));
-        meta.setCustomModelDataComponent(customModelData);
-        meta.setUnbreakable(true);
-        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ENCHANTS);
-        meta.setLore(List.of(
-                ChatColor.DARK_GRAY + "NovaStream Items",
-                ChatColor.GRAY + "Grade : " + definition.grade.color + definition.grade.displayName,
-                ChatColor.GRAY + "Type : " + ChatColor.WHITE + definition.category.displayName,
-                ChatColor.DARK_GRAY + "ID : " + definition.id
-        ));
-        meta.getPersistentDataContainer().set(itemIdKey, PersistentDataType.STRING, definition.id);
-
-        int level = definition.grade.enchantmentLevel;
-        switch (definition.category) {
-            case PICKAXE -> {
-                meta.addEnchant(Enchantment.EFFICIENCY, level, true);
-                meta.addEnchant(Enchantment.UNBREAKING, level, true);
-            }
-            case SWORD -> {
-                meta.addEnchant(Enchantment.SHARPNESS, level, true);
-                meta.addEnchant(Enchantment.UNBREAKING, level, true);
-            }
-            case AXE -> {
-                meta.addEnchant(Enchantment.EFFICIENCY, level, true);
-                meta.addEnchant(Enchantment.SHARPNESS, Math.max(1, level - 1), true);
-                meta.addEnchant(Enchantment.UNBREAKING, level, true);
-            }
-            case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> {
-                meta.addEnchant(Enchantment.PROTECTION, level, true);
-                meta.addEnchant(Enchantment.UNBREAKING, level, true);
-            }
-            case BLOCK -> { }
-        }
-
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    private void sendPack(Player player) {
-        String url = getResourcePackUrl();
-        if (url.isBlank() || !getConfig().getBoolean("send-pack-on-join", true)) return;
-        String prompt = getConfig().getString("resource-pack-prompt",
-                "Télécharge le pack NovaStream Items pour voir les textures personnalisées.");
-        Bukkit.getScheduler().runTaskLater(this, () -> player.setResourcePack(url, prompt), 40L);
-    }
-
-    private String getResourcePackUrl() {
-        return getConfig().getString("resource-pack-url", "").trim();
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        sendPack(event.getPlayer());
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("novastreamitems.admin")) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Tu n'as pas la permission.");
-            return true;
-        }
-        if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
-            sendHelp(sender, label);
-            return true;
-        }
-
-        switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "list" -> {
-                sender.sendMessage(PREFIX + ChatColor.AQUA + "Objets disponibles :");
-                sender.sendMessage(ChatColor.GRAY + String.join(", ", definitions.keySet()));
-            }
-            case "give" -> giveItem(sender, args);
-            case "pack" -> {
-                if (!(sender instanceof Player player)) {
-                    sender.sendMessage(PREFIX + ChatColor.RED + "Cette commande doit être exécutée par un joueur.");
-                    return true;
-                }
-                String url = getResourcePackUrl();
-                if (url.isBlank()) {
-                    sender.sendMessage(PREFIX + ChatColor.RED + "Aucune URL de pack n'est configurée.");
-                    return true;
-                }
-                player.setResourcePack(url, getConfig().getString("resource-pack-prompt", "Pack NovaStream Items"));
-                sender.sendMessage(PREFIX + ChatColor.GREEN + "Pack envoyé.");
-            }
-            case "reload" -> {
-                reloadConfig();
-                loadDefinitions();
-                registerRecipes();
-                sender.sendMessage(PREFIX + ChatColor.GREEN + "Configuration et recettes rechargées.");
-            }
-            default -> sendHelp(sender, label);
-        }
-        return true;
-    }
-
-    private void giveItem(CommandSender sender, String[] args) {
-        if (args.length < 3) {
-            sender.sendMessage(PREFIX + ChatColor.YELLOW + "Usage : /customitems give <joueur> <objet> [quantité]");
-            return;
-        }
-
-        Player target = Bukkit.getPlayerExact(args[1]);
-        if (target == null) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Joueur introuvable ou hors ligne.");
-            return;
-        }
-
-        Definition definition = definitions.get(args[2].toLowerCase(Locale.ROOT));
-        if (definition == null) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Objet inconnu. Utilise /customitems list.");
-            return;
-        }
-
-        int amount = 1;
-        if (args.length >= 4) {
-            try {
-                amount = Math.max(1, Math.min(64, Integer.parseInt(args[3])));
-            } catch (NumberFormatException ex) {
-                sender.sendMessage(PREFIX + ChatColor.RED + "La quantité doit être un nombre.");
-                return;
-            }
-        }
-
-        ItemStack item = createItem(definition);
-        item.setAmount(amount);
-        Map<Integer, ItemStack> leftovers = target.getInventory().addItem(item);
-        leftovers.values().forEach(leftover -> target.getWorld().dropItemNaturally(target.getLocation(), leftover));
-        sender.sendMessage(PREFIX + ChatColor.GREEN + amount + "x " + definition.displayName
-                + ChatColor.GREEN + " donné à " + target.getName() + ".");
-    }
-
-    private void sendHelp(CommandSender sender, String label) {
-        sender.sendMessage(PREFIX + ChatColor.AQUA + "NovaStream Items — Équipements personnalisés");
-        sender.sendMessage(ChatColor.YELLOW + "/" + label + " list " + ChatColor.GRAY + "Voir les IDs des objets");
-        sender.sendMessage(ChatColor.YELLOW + "/" + label + " give <joueur> <objet> [quantité]");
-        sender.sendMessage(ChatColor.YELLOW + "/" + label + " pack " + ChatColor.GRAY + "Recevoir le pack configuré");
-        sender.sendMessage(ChatColor.YELLOW + "/" + label + " reload " + ChatColor.GRAY + "Recharger la configuration");
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return partial(args[0], List.of("help", "list", "give", "pack", "reload"));
-        if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
-            return partial(args[1], Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
-        }
-        if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
-            return partial(args[2], new ArrayList<>(definitions.keySet()));
-        }
-        return Collections.emptyList();
-    }
-
-    private List<String> partial(String input, List<String> values) {
-        String lower = input.toLowerCase(Locale.ROOT);
-        return values.stream().filter(value -> value.toLowerCase(Locale.ROOT).startsWith(lower)).toList();
-    }
-
-    private record Definition(String id, String displayName, Material material, int modelData, Grade grade, Category category) { }
-
-    private enum Grade {
-        COMMON("commun", "Commun", ChatColor.WHITE, Material.IRON_INGOT, 1),
-        RARE("rare", "Rare", ChatColor.BLUE, Material.GOLD_INGOT, 2),
-        EPIC("epique", "Épique", ChatColor.LIGHT_PURPLE, Material.DIAMOND, 3),
-        LEGENDARY("legendaire", "Légendaire", ChatColor.GOLD, Material.NETHERITE_INGOT, 4);
-
-        private final String key;
-        private final String displayName;
-        private final ChatColor color;
-        private final Material recipeMaterial;
-        private final int enchantmentLevel;
-
-        Grade(String key, String displayName, ChatColor color, Material recipeMaterial, int enchantmentLevel) {
-            this.key = key;
-            this.displayName = displayName;
-            this.color = color;
-            this.recipeMaterial = recipeMaterial;
-            this.enchantmentLevel = enchantmentLevel;
-        }
-    }
-
-    private enum Category {
-        PICKAXE("pioche", "Pioche", Material.NETHERITE_PICKAXE, new String[]{"GGG", " S", " S"}),
-        SWORD("epee", "Épée", Material.NETHERITE_SWORD, new String[]{" G", " G", " S"}),
-        AXE("hache", "Hache", Material.NETHERITE_AXE, new String[]{"GG", "GS", " S"}),
-        HELMET("casque", "Casque", Material.NETHERITE_HELMET, new String[]{"GGG", "G G", ""}),
-        CHESTPLATE("plastron", "Plastron", Material.NETHERITE_CHESTPLATE, new String[]{"G G", "GGG", "GGG"}),
-        LEGGINGS("jambieres", "Jambières", Material.NETHERITE_LEGGINGS, new String[]{"GGG", "G G", "G G"}),
-        BOOTS("bottes", "Bottes", Material.NETHERITE_BOOTS, new String[]{"G G", "G G", ""}),
-        BLOCK("bloc", "Bloc", Material.AMETHYST_BLOCK, new String[]{"GGG", "GGG", "GGG"});
-
-        private final String key;
-        private final String displayName;
-        private final Material material;
-        private final String[] recipeShape;
-
-        Category(String key, String displayName, Material material, String[] recipeShape) {
-            this.key = key;
-            this.displayName = displayName;
-            this.material = material;
-            this.recipeShape = recipeShape;
-        }
-    }
+    enum Grade { COMMUN("commun","Commun",ChatColor.WHITE,Material.IRON_INGOT,1), RARE("rare","Rare",ChatColor.BLUE,Material.GOLD_INGOT,2), EPIQUE("epique","Épique",ChatColor.LIGHT_PURPLE,Material.DIAMOND,3), LEGENDARY("legendaire","Légendaire",ChatColor.GOLD,Material.NETHERITE_INGOT,4); final String key,displayName; final ChatColor color; final Material recipeMaterial; final int enchantmentLevel; Grade(String k,String n,ChatColor c,Material m,int l){key=k;displayName=n;color=c;recipeMaterial=m;enchantmentLevel=l;} }
+    enum Category { PIOCHE("pioche","Pioche",Material.NETHERITE_PICKAXE,new String[]{"GGG"," S "," S "}), EPEE("epee","Épée",Material.NETHERITE_SWORD,new String[]{" G "," G "," S "}), HACHE("hache","Hache",Material.NETHERITE_AXE,new String[]{"GG ","GS "," S "}), CASQUE("casque","Casque",Material.NETHERITE_HELMET,new String[]{"GGG","G G","   "}), PLASTRON("plastron","Plastron",Material.NETHERITE_CHESTPLATE,new String[]{"G G","GGG","GGG"}), JAMBIERES("jambieres","Jambières",Material.NETHERITE_LEGGINGS,new String[]{"GGG","G G","G G"}), BOTTES("bottes","Bottes",Material.NETHERITE_BOOTS,new String[]{"G G","G G","   "}), BLOC("bloc","Bloc",Material.AMETHYST_BLOCK,new String[]{"GGG","GGG","GGG"}); final String key,displayName; final Material material; final String[] recipeShape; Category(String k,String n,Material m,String[] s){key=k;displayName=n;material=m;recipeShape=s;} }
+    record Definition(String id,String displayName,Material material,int modelData,Grade grade,Category category){}
+    @Override public void onEnable(){itemIdKey=new NamespacedKey(this,"item_id");saveDefaultConfig();saveResource("resource-pack/NovaStream-Items-resource-pack.zip",false);loadDefinitions();PluginCommand c=getCommand("customitems");if(c!=null){c.setExecutor(this);c.setTabCompleter(this);}Bukkit.getPluginManager().registerEvents(this,this);registerRecipes();getLogger().info("NovaStream Items activé : "+definitions.size()+" objets.");}
+    @Override public void onDisable(){definitions.clear();}
+    private void loadDefinitions(){definitions.clear();for(Grade g:Grade.values())for(Category c:Category.values()){String id=g.key+"_"+c.key;int model=1000+g.ordinal()*100+c.ordinal()+1;definitions.put(id,new Definition(id,g.displayName+" "+c.displayName,c.material,model,g,c));}}
+    private ItemStack createItem(Definition d){ItemStack item=new ItemStack(d.material);ItemMeta meta=item.getItemMeta();meta.setDisplayName(d.grade.color+d.displayName);CustomModelDataComponent cmd=meta.getCustomModelDataComponent();cmd.setStrings(List.of(d.id));meta.setCustomModelDataComponent(cmd);meta.setUnbreakable(true);meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE,ItemFlag.HIDE_ENCHANTS);meta.setLore(List.of(ChatColor.DARK_GRAY+"NovaStream Items",ChatColor.GRAY+"Grade : "+d.grade.color+d.grade.displayName,ChatColor.GRAY+"Type : "+ChatColor.WHITE+d.category.displayName,ChatColor.DARK_GRAY+"ID : "+d.id));meta.getPersistentDataContainer().set(itemIdKey,PersistentDataType.STRING,d.id);int l=d.grade.enchantmentLevel;switch(d.category){case PIOCHE->{meta.addEnchant(org.bukkit.enchantments.Enchantment.EFFICIENCY,l,true);meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING,l,true);}case EPEE->{meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS,l,true);meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING,l,true);}case HACHE->{meta.addEnchant(org.bukkit.enchantments.Enchantment.EFFICIENCY,l,true);meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS,Math.max(1,l-1),true);meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING,l,true);}case CASQUE,PLASTRON,JAMBIERES,BOTTES->{meta.addEnchant(org.bukkit.enchantments.Enchantment.PROTECTION,l,true);meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING,l,true);}case BLOC->{}}item.setItemMeta(meta);return item;}
+    private void registerRecipes(){for(Definition d:definitions.values()){NamespacedKey k=new NamespacedKey(this,"recipe_"+d.id);Bukkit.removeRecipe(k);ShapedRecipe r=new ShapedRecipe(k,createItem(d));r.shape(d.category.recipeShape);r.setIngredient('G',d.grade.recipeMaterial);r.setIngredient('S',Material.STICK);Bukkit.addRecipe(r);}}
+    @EventHandler public void onJoin(PlayerJoinEvent e){if(!getConfig().getBoolean("send-pack-on-join",true))return;String url=getConfig().getString("resource-pack-url","");if(url!=null&&!url.isBlank()){String prompt=getConfig().getString("resource-pack-prompt","Pack NovaStream Items");Bukkit.getScheduler().runTaskLater(this,()->e.getPlayer().setResourcePack(url,prompt),40L);}}
+    @Override public boolean onCommand(CommandSender s,Command c,String label,String[] a){if(a.length==0||a[0].equalsIgnoreCase("help")){help(s,label);return true;}if(!s.hasPermission("novastreamitems.admin")){s.sendMessage(ChatColor.RED+"Pas de permission.");return true;}switch(a[0].toLowerCase(Locale.ROOT)){case "list"->s.sendMessage(ChatColor.AQUA+"Objets : "+ChatColor.WHITE+String.join(ChatColor.GRAY+", "+ChatColor.WHITE,definitions.keySet()));case "give"->give(s,a);case "pack"->{if(s instanceof Player p){String u=getConfig().getString("resource-pack-url","");if(u==null||u.isBlank())s.sendMessage(ChatColor.RED+"Aucune URL de pack configurée.");else{p.setResourcePack(u,getConfig().getString("resource-pack-prompt","Pack NovaStream Items"));s.sendMessage(ChatColor.GREEN+"Pack envoyé.");}}}case "reload"->{reloadConfig();loadDefinitions();registerRecipes();s.sendMessage(ChatColor.GREEN+"NovaStream Items rechargé.");}default->help(s,label);}return true;}
+    private void help(CommandSender s,String l){s.sendMessage(ChatColor.AQUA+"NovaStream Items");s.sendMessage(ChatColor.GRAY+"/"+l+" list");s.sendMessage(ChatColor.GRAY+"/"+l+" give <joueur> <objet> [quantité]");s.sendMessage(ChatColor.GRAY+"/"+l+" pack");s.sendMessage(ChatColor.GRAY+"/"+l+" reload");}
+    private void give(CommandSender s,String[] a){if(a.length<3){s.sendMessage(ChatColor.YELLOW+"Usage : /customitems give <joueur> <objet> [quantité]");return;}Player p=Bukkit.getPlayerExact(a[1]);if(p==null){s.sendMessage(ChatColor.RED+"Joueur introuvable.");return;}Definition d=definitions.get(a[2].toLowerCase(Locale.ROOT));if(d==null){s.sendMessage(ChatColor.RED+"Item inconnu. Utilise /customitems list.");return;}int n=1;if(a.length>=4)try{n=Math.max(1,Math.min(64,Integer.parseInt(a[3])));}catch(NumberFormatException e){s.sendMessage(ChatColor.RED+"Quantité invalide.");return;}ItemStack i=createItem(d);i.setAmount(n);p.getInventory().addItem(i);s.sendMessage(ChatColor.GREEN+"Donné "+d.displayName+" à "+p.getName()+" x"+n+".");}
+    @Override public List<String> onTabComplete(CommandSender s,Command c,String a,String[] x){if(x.length==1)return partial(x[0],List.of("list","give","pack","reload","help"));if(x.length==2&&x[0].equalsIgnoreCase("give"))return partial(x[1],Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());if(x.length==3&&x[0].equalsIgnoreCase("give"))return partial(x[2],definitions.keySet());if(x.length==4&&x[0].equalsIgnoreCase("give"))return partial(x[3],List.of("1","4","16","64"));return List.of();}
+    private List<String> partial(String in,Collection<String> v){String q=in.toLowerCase(Locale.ROOT);return v.stream().filter(x->x.toLowerCase(Locale.ROOT).startsWith(q)).sorted().toList();}
 }
