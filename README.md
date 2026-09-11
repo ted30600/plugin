@@ -1,6 +1,6 @@
-# ZombieLogin
+# UltraLogin
 
-Plugin Paper pour Minecraft 1.21.10 ajoutant un système `/register` + `/login`.
+Plugin Paper pour Minecraft 1.21.10 ajoutant un système `/register` + `/login` et un système de lobby.
 
 ## Pré-requis
 
@@ -8,28 +8,26 @@ Plugin Paper pour Minecraft 1.21.10 ajoutant un système `/register` + `/login`.
 - Java 21
 - Maven 3.9+
 
-## Compilation
+## Fonctionnalités
 
-```bash
-mvn clean package
-```
-
-Le JAR est généré dans `target/ZombieLogin.jar`.
+- `/register <motdepasse> <motdepasse>` pour créer un compte.
+- `/login <motdepasse>` pour se connecter.
+- `/lobby` pour retourner au lobby.
+- Téléportation automatique au lobby à chaque connexion.
+- Après `/login` ou `/register`, le joueur reste au lobby.
+- `/setlobby` pour définir la position actuelle comme lobby (permission `ultralogin.admin`, OP par défaut).
+- Les commandes sont bloquées avant authentification, sauf `/login`, `/register` et `/lobby`.
+- Le joueur est en aventure et invulnérable tant qu'il n'est pas authentifié.
 
 ## Installation
 
-1. Compile le projet.
-2. Place `target/ZombieLogin.jar` dans le dossier `plugins/` de ton serveur Paper.
+1. Compile le projet avec `mvn clean package`.
+2. Place `target/UltraLogin.jar` dans le dossier `plugins/` de ton serveur Paper.
 3. Redémarre le serveur.
-4. À la première connexion : `/register <motdepasse> <motdepasse>`.
-5. Aux connexions suivantes : `/login <motdepasse>`.
-
-Tant que le joueur n'est pas authentifié, les commandes autres que `/login` et `/register` sont bloquées et le joueur dispose d'une protection temporaire.
+4. Connecte-toi en tant qu'OP et place-toi à l'endroit souhaité.
+5. Utilise `/setlobby` une fois.
+6. Les joueurs seront automatiquement téléportés à cet endroit lorsqu'ils se connectent.
 
 ## Sécurité
 
 Les mots de passe sont stockés sous forme de hash SHA-256 avec un sel aléatoire. Pour une production exposée sur Internet, une évolution vers Argon2id ou bcrypt est recommandée.
-
-## Dépôt
-
-https://github.com/ted30600/zombie-mod
