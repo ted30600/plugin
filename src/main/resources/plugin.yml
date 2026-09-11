@@ -18,6 +18,6 @@ commands:
     description: Set the current location as the lobby
     usage: /setlobby
 permissions:
-  ultralogo.admin:
+  ultralogin.admin:
     description: Manage NovaLobby and set the lobby
     default: op
