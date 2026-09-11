@@ -6,6 +6,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,18 +18,15 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
     private PasswordStore passwords;
     private final Set<UUID> authenticated = new HashSet<>();
-    private final Map<UUID, Location> loginLocations = new HashMap<>();
-    private final Map<UUID, BukkitTask> kickTasks = new HashMap<>();
-    private final Map<UUID, Long> sessionExpiry = new HashMap<>();
+    private final java.util.Map<UUID, BukkitTask> kickTasks = new java.util.HashMap<>();
+    private final java.util.Map<UUID, Long> sessionExpiry = new java.util.HashMap<>();
     private FileConfiguration cfg;
 
     @Override
@@ -70,7 +68,35 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
             });
         }
 
-        getLogger().info("UltraLogin activé - comptes persistants dans players.yml.");
+        if (getCommand("lobby") != null) {
+            getCommand("lobby").setExecutor((sender, command, label, args) -> {
+                if (!(sender instanceof Player player)) return true;
+                teleportToLobby(player);
+                return true;
+            });
+        }
+
+        if (getCommand("setlobby") != null) {
+            getCommand("setlobby").setExecutor((sender, command, label, args) -> {
+                if (!(sender instanceof Player player)) return true;
+                if (!player.hasPermission("ultralogin.admin")) {
+                    msg(player, "no-permission");
+                    return true;
+                }
+                Location loc = player.getLocation();
+                cfg.set("lobby.world", loc.getWorld().getName());
+                cfg.set("lobby.x", loc.getX());
+                cfg.set("lobby.y", loc.getY());
+                cfg.set("lobby.z", loc.getZ());
+                cfg.set("lobby.yaw", loc.getYaw());
+                cfg.set("lobby.pitch", loc.getPitch());
+                saveConfig();
+                msg(player, "lobby-set");
+                return true;
+            });
+        }
+
+        getLogger().info("UltraLogin activé - /lobby disponible, lobby automatique à la connexion.");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -78,7 +104,7 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
         authenticated.remove(uuid);
-        loginLocations.put(uuid, player.getLocation().clone());
+        teleportToLobby(player);
         player.setGameMode(GameMode.ADVENTURE);
         player.setInvulnerable(true);
         player.sendMessage(Component.text("==============================", NamedTextColor.DARK_GRAY));
@@ -101,7 +127,6 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         authenticated.remove(uuid);
-        loginLocations.remove(uuid);
         sessionExpiry.remove(uuid);
         BukkitTask task = kickTasks.remove(uuid);
         if (task != null) task.cancel();
@@ -112,7 +137,7 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         if (authenticated.contains(player.getUniqueId())) return;
         String command = event.getMessage().toLowerCase().split(" ")[0];
-        if (!command.equals("/login") && !command.equals("/register")) {
+        if (!command.equals("/login") && !command.equals("/register") && !command.equals("/lobby")) {
             event.setCancelled(true);
             msg(player, "login-required");
         }
@@ -121,14 +146,38 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
     private void authenticate(Player player) {
         UUID uuid = player.getUniqueId();
         authenticated.add(uuid);
-        Location location = loginLocations.remove(uuid);
-        if (location != null) player.teleport(location);
+        teleportToLobby(player);
         player.setInvulnerable(false);
         player.setGameMode(GameMode.SURVIVAL);
         BukkitTask task = kickTasks.remove(uuid);
         if (task != null) task.cancel();
         long minutes = cfg.getLong("settings.session-timeout-minutes", 30);
         sessionExpiry.put(uuid, System.currentTimeMillis() + minutes * 60_000L);
+    }
+
+    private void teleportToLobby(Player player) {
+        Location lobby = getLobbyLocation();
+        if (lobby != null) {
+            player.teleport(lobby);
+        }
+    }
+
+    private Location getLobbyLocation() {
+        String worldName = cfg.getString("lobby.world", "");
+        if (worldName == null || worldName.isBlank()) return null;
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            getLogger().warning("Le monde du lobby '" + worldName + "' n'est pas chargé.");
+            return null;
+        }
+        return new Location(
+                world,
+                cfg.getDouble("lobby.x"),
+                cfg.getDouble("lobby.y"),
+                cfg.getDouble("lobby.z"),
+                (float) cfg.getDouble("lobby.yaw"),
+                (float) cfg.getDouble("lobby.pitch")
+        );
     }
 
     private void msg(Player player, String key) {
