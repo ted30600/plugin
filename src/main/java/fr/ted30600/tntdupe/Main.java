@@ -16,9 +16,8 @@ import java.util.List;
  * TNT duplication support for piston-driven flying machines such as
  * World Eaters and Trench Miners.
  *
- * The duplication is deliberately limited to TNT moved in the same piston
- * event as slime, honey, or dead coral. This avoids turning every ordinary
- * piston-pushed TNT block into a duplicator.
+ * Duplication only occurs when TNT is moved in the same piston event as
+ * slime, honey, or dead coral. The TNT block itself is not removed.
  */
 public final class Main extends JavaPlugin implements Listener {
 
@@ -36,14 +35,7 @@ public final class Main extends JavaPlugin implements Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
         List<Block> movedBlocks = event.getBlocks();
-        if (movedBlocks.isEmpty()) {
-            return;
-        }
-
-        // The piston event exposes the blocks before they are moved.
-        // A valid flying-machine setup must move TNT together with at least
-        // one slime/honey block or a dead coral block.
-        if (!containsTriggerBlock(movedBlocks)) {
+        if (movedBlocks.isEmpty() || !containsTriggerBlock(movedBlocks)) {
             return;
         }
 
@@ -52,11 +44,14 @@ public final class Main extends JavaPlugin implements Listener {
                 continue;
             }
 
-            Location spawnLocation = block.getLocation()
-                    .add(event.getDirection().getDirection().multiply(0.5));
+            // The event fires before the piston moves the blocks, so the
+            // destination is the current TNT block shifted by piston direction.
+            // Spawn at the center of that destination block.
+            Block destination = block.getRelative(event.getDirection());
+            Location spawnLocation = destination.getLocation().add(0.5, 0.5, 0.5);
 
             TNTPrimed primed = block.getWorld().spawn(spawnLocation, TNTPrimed.class);
-            // Match vanilla TNT's normal fuse (4 seconds / 80 ticks).
+            // Vanilla TNT's standard fuse is 80 ticks (4 seconds).
             primed.setFuse(80);
         }
     }
@@ -74,21 +69,24 @@ public final class Main extends JavaPlugin implements Listener {
     }
 
     private boolean isDeadCoral(Material material) {
-        return material == Material.DEAD_BRAIN_CORAL
-                || material == Material.DEAD_BUBBLE_CORAL
-                || material == Material.DEAD_FIRE_CORAL
-                || material == Material.DEAD_HORN_CORAL
-                || material == Material.DEAD_TUBE_CORAL
-                || material == Material.DEAD_CORAL_BLOCK
-                || material == Material.DEAD_BRAIN_CORAL_FAN
-                || material == Material.DEAD_BUBBLE_CORAL_FAN
-                || material == Material.DEAD_FIRE_CORAL_FAN
-                || material == Material.DEAD_HORN_CORAL_FAN
-                || material == Material.DEAD_TUBE_CORAL_FAN
-                || material == Material.DEAD_BRAIN_CORAL_WALL_FAN
-                || material == Material.DEAD_BUBBLE_CORAL_WALL_FAN
-                || material == Material.DEAD_FIRE_CORAL_WALL_FAN
-                || material == Material.DEAD_HORN_CORAL_WALL_FAN
-                || material == Material.DEAD_TUBE_CORAL_WALL_FAN;
+        return switch (material) {
+            case DEAD_BRAIN_CORAL,
+                 DEAD_BUBBLE_CORAL,
+                 DEAD_FIRE_CORAL,
+                 DEAD_HORN_CORAL,
+                 DEAD_TUBE_CORAL,
+                 DEAD_CORAL_BLOCK,
+                 DEAD_BRAIN_CORAL_FAN,
+                 DEAD_BUBBLE_CORAL_FAN,
+                 DEAD_FIRE_CORAL_FAN,
+                 DEAD_HORN_CORAL_FAN,
+                 DEAD_TUBE_CORAL_FAN,
+                 DEAD_BRAIN_CORAL_WALL_FAN,
+                 DEAD_BUBBLE_CORAL_WALL_FAN,
+                 DEAD_FIRE_CORAL_WALL_FAN,
+                 DEAD_HORN_CORAL_WALL_FAN,
+                 DEAD_TUBE_CORAL_WALL_FAN -> true;
+            default -> false;
+        };
     }
 }
