@@ -1,0 +1,28 @@
+name: Build TNTDupe
+
+on:
+  push:
+    branches:
+      - feature/tnt-duplication
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build
+        run: mvn -B package --file pom.xml
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: TNTDupe
+          path: target/*.jar
+          if-no-files-found: error
