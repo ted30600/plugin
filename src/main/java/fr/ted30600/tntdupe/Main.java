@@ -46,13 +46,11 @@ public final class Main extends JavaPlugin implements Listener {
 
             // The event fires before the piston moves the blocks, so the
             // destination is the current TNT block shifted by piston direction.
-            // Spawn at the center of that destination block.
             Block destination = block.getRelative(event.getDirection());
             Location spawnLocation = destination.getLocation().add(0.5, 0.5, 0.5);
 
-            TNTPrimed primed = block.getWorld().spawn(spawnLocation, TNTPrimed.class);
-            // Vanilla TNT's standard fuse is 80 ticks (4 seconds).
-            primed.setFuse(80);
+            // The spawned TNT uses the server's normal vanilla TNT fuse.
+            block.getWorld().spawn(spawnLocation, TNTPrimed.class);
         }
     }
 
@@ -75,7 +73,11 @@ public final class Main extends JavaPlugin implements Listener {
                  DEAD_FIRE_CORAL,
                  DEAD_HORN_CORAL,
                  DEAD_TUBE_CORAL,
-                 DEAD_CORAL_BLOCK,
+                 DEAD_BRAIN_CORAL_BLOCK,
+                 DEAD_BUBBLE_CORAL_BLOCK,
+                 DEAD_FIRE_CORAL_BLOCK,
+                 DEAD_HORN_CORAL_BLOCK,
+                 DEAD_TUBE_CORAL_BLOCK,
                  DEAD_BRAIN_CORAL_FAN,
                  DEAD_BUBBLE_CORAL_FAN,
                  DEAD_FIRE_CORAL_FAN,
