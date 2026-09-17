@@ -1,0 +1,21 @@
+name: Build RealSolarEconomy
+on:
+  push:
+    branches: [realsolareconomy-1.21.5, main]
+  pull_request:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mvn -B clean package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RealSolarEconomy
+          path: target/RealSolarEconomy.jar
