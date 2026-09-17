@@ -9,12 +9,20 @@ function showApp(){ $('login').hidden=true;$('app').hidden=false;$('who').textCo
 async function selectManager(m){manager=m;document.querySelectorAll('.manager').forEach(b=>b.classList.toggle('active',b.dataset.m===m));$('title').textContent='Gestionnaire '+m;await loadFiles()}
 async function loadFiles(){try{files=(await api('/api/files?manager='+manager)).files;render()}catch(e){alert(e.message)}}
 function human(n){if(n<1024)return n+' o';if(n<1048576)return (n/1024).toFixed(1)+' Ko';if(n<1073741824)return (n/1048576).toFixed(1)+' Mo';return (n/1073741824).toFixed(2)+' Go'}
-function render(){const q=$('search').value.toLowerCase();const list=files.filter(f=>f.name.toLowerCase().includes(q));$('count').textContent=files.length+' fichier(s)';$('files').innerHTML=list.map(f=>{const preview=f.mime.startsWith('image/')?`<img src="/api/files/${f.id}/view" loading="lazy">`:f.mime.startsWith('video/')?`<video src="/api/files/${f.id}/view" controls preload="metadata"></video>`:'<div class="icon">FILE</div>';return `<article><div class="preview">${preview}</div><div class="meta"><b title="${esc(f.name)}">${esc(f.name)}</b><small>${human(f.size)} · ${new Date(f.createdAt).toLocaleString('fr-FR')}</small></div><div class="actions"><a href="/api/files/${f.id}/download">Télécharger</a><button onclick="removeFile('${f.id}')">Supprimer</button></div></article>`}).join('')||'<div class="empty">Aucun fichier dans cet espace.</div>'}
+function render(){const q=$('search').value.toLowerCase();const list=files.filter(f=>f.name.toLowerCase().includes(q));$('count').textContent=files.length+' fichier(s)';$('files').innerHTML=list.map(f=>{const preview=f.mime.startsWith('image/')?`<img src="/api/files/${f.id}/view" loading="lazy">`:f.mime.startsWith('video/')?`<video src="/api/files/${f.id}/view" controls preload="metadata"></video>`:'<div class="icon">FILE</div>';return `<article><div class="preview">${preview}</div><div class="meta"><b title="${esc(f.name)}">${esc(f.name)}</b><small>${human(f.size)} · ${new Date(f.createdAt).toLocaleString('fr-FR')}</small></div><div class="actions"><a href="/api/files/${f.id}/download">Télécharger</a><button type="button" onclick="removeFile('${f.id}')">Supprimer</button></div></article>`}).join('')||'<div class="empty">Aucun fichier dans cet espace.</div>'}
 function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function uploadFiles(){const input=$('fileInput');if(!input.files.length)return;const fd=new FormData();[...input.files].forEach(f=>fd.append('files',f));try{await api('/api/files?manager='+manager,{method:'POST',body:fd});input.value='';await loadFiles()}catch(e){alert(e.message)}}
 async function removeFile(id){if(!confirm('Supprimer ce fichier ?'))return;try{await api('/api/files/'+id,{method:'DELETE'});await loadFiles()}catch(e){alert(e.message)}}
-async function openAccounts(){ $('modal').hidden=false;try{const d=await api('/api/accounts');$('accounts').innerHTML=d.users.map(u=>`<div class="account"><span><b>${esc(u.username)}</b><small>${u.role}</small></span>${u.username!==me.username?`<button onclick="deleteAccount('${esc(u.username)}')">Supprimer</button>`:''}</div>`).join('')}catch(e){alert(e.message)}}
-function closeAccounts(){$('modal').hidden=true}
+async function openAccounts(){ $('modal').hidden=false;try{const d=await api('/api/accounts');$('accounts').innerHTML=d.users.map(u=>`<div class="account"><span><b>${esc(u.username)}</b><small>${u.role}</small></span>${u.username!==me.username?`<button type="button" onclick="deleteAccount('${esc(u.username)}')">Supprimer</button>`:''}</div>`).join('')}catch(e){alert(e.message)}}
+function closeAccounts(){ $('modal').hidden=true; }
 async function createAccount(){try{await api('/api/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('newUser').value.trim(),password:$('newPass').value,role:$('newRole').value})});$('newUser').value='';$('newPass').value='';openAccounts()}catch(e){alert(e.message)}}
 async function deleteAccount(u){if(!confirm('Supprimer le compte '+u+' et tous ses fichiers ?'))return;try{await api('/api/accounts/'+encodeURIComponent(u),{method:'DELETE'});openAccounts()}catch(e){alert(e.message)}}
-boot();
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const close=$('closeAccounts');
+  if(close) close.addEventListener('click', closeAccounts);
+  const modal=$('modal');
+  if(modal) modal.addEventListener('click',e=>{if(e.target===modal)closeAccounts()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape' && modal && !modal.hidden)closeAccounts()});
+  boot();
+});
