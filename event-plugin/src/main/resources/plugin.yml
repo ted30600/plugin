@@ -1,0 +1,15 @@
+name: EventPlugin
+version: 1.0.0
+main: fr.ted30600.eventplugin.EventPlugin
+api-version: '1.21'
+author: ted30600
+description: Gestion d'un evenement avec interface et actionbar.
+commands:
+  event:
+    description: Affiche les informations de l'evenement.
+    usage: /event
+    aliases: ["évent"]
+permissions:
+  event.admin:
+    description: Permet de modifier la configuration de l'evenement.
+    default: op
