@@ -1,0 +1,18 @@
+event:
+  name: "Mon evenement"
+  title: "§6§lMon evenement"
+  description: "§7Bienvenue dans notre evenement !"
+  actionbar: "§e§lEVENT §8» §fMon evenement §7- §e/event §7pour les infos"
+
+interface:
+  title: "§6§lInformations de l'evenement"
+  size: 27
+  name-item: "§e§lNom"
+  title-item: "§6§lTitre"
+  description-item: "§b§lDescription"
+
+messages:
+  no-event: "§cAucun evenement n'est configure."
+  reloaded: "§aConfiguration de l'evenement rechargee."
+  updated: "§aInformation de l'evenement mise a jour."
+  no-permission: "§cVous n'avez pas la permission."
