@@ -1,0 +1,41 @@
+name: Build EventPlugin
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "event-plugin/**"
+      - ".github/workflows/build-event-plugin.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "event-plugin/**"
+      - ".github/workflows/build-event-plugin.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build EventPlugin
+        working-directory: event-plugin
+        run: mvn -B clean package
+
+      - name: Upload EventPlugin JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: EventPlugin
+          path: event-plugin/target/EventPlugin.jar
+          if-no-files-found: error
+          retention-days: 30
