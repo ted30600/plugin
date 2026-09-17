@@ -1,0 +1,9 @@
+items:
+  diamond:
+    material: DIAMOND
+    buy: 10.0
+    sell: 5.0
+  netherite:
+    material: NETHERITE_INGOT
+    buy: 100.0
+    sell: 50.0
