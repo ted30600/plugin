@@ -1,28 +1,31 @@
-# UltraLogin configuration
+trade-expiry-seconds: 60
+shop:
+  diamond-buy: 10.0
+  diamond-sell: 5.0
+  netherite-buy: 100.0
+  netherite-sell: 50.0
 messages:
-  login-required: "&cTu dois te connecter avec &e/login <mot de passe>&c."
-  register-required: "&eBienvenue ! &7Utilise &a/register <mot de passe> <mot de passe> &7pour créer ton compte."
-  login-success: "&aConnexion réussie ! &7Téléportation au lobby."
-  register-success: "&aCompte créé et connexion réussie ! &7Téléportation au lobby."
-  wrong-password: "&cMot de passe incorrect."
-  password-mismatch: "&cLes mots de passe ne correspondent pas."
-  already-registered: "&cTu es déjà enregistré. Utilise /login <mot de passe>."
-  not-registered: "&cTu n'es pas enregistré. Utilise /register <mot de passe> <mot de passe>."
-  usage-login: "&eUtilise : /login <mot de passe>"
-  usage-register: "&eUtilise : /register <mot de passe> <mot de passe>"
-  session-expired: "&cTa session a expiré. Connecte-toi avec /login <mot de passe>."
-  lobby-set: "&aLobby défini à ta position actuelle."
-  no-permission: "&cTu n'as pas la permission."
-settings:
-  kick-after-seconds: 60
-  session-timeout-minutes: 30
-  min-password-length: 4
-
-# Le lobby est défini automatiquement avec /setlobby.
-lobby:
-  world: ""
-  x: 0.0
-  y: 100.0
-  z: 0.0
-  yaw: 0.0
-  pitch: 0.0
+  errors.player: "&cCette commande est réservée aux joueurs."
+  errors.permission: "&cVous n'avez pas la permission."
+  errors.usage: "&eUtilisation incorrecte."
+  errors.offline: "&cJoueur introuvable ou hors ligne."
+  errors.invalid: "&cParamètres invalides."
+  errors.currency: "&cMonnaie invalide: diamond ou netherite."
+  errors.amount: "&cMontant invalide."
+  errors.insufficient: "&cSolde insuffisant."
+  errors.negative: "&cLe solde ne peut pas être négatif."
+  errors.noitem: "&cVous n'avez pas l'objet nécessaire."
+  errors.database: "&cUne erreur interne est survenue."
+  errors.payment_usage: "&eFormat: joueur montant diamond|netherite"
+  trade.none: "&cAucune demande de trade valide."
+  trade.offline: "&cL'autre joueur est hors ligne."
+  trade.invalid: "&cJoueur invalide."
+  trade.busy: "&cCe joueur a déjà une demande active."
+  trade.sent: "&aDemande de trade envoyée à &f{0}&a."
+  trade.received: "&e{0} &avous propose un trade. &f/trade accept &aou &f/trade deny &a({1}s)."
+  trade.denied: "&c{0} a refusé votre trade."
+  trade.cancelled: "&aDemande annulée."
+  admin.reloaded: "&aConfiguration rechargée."
+  admin.balance: "&ePlayer: &f{0} &e| Diamond: &f{1} &e| Netherite: &f{2}"
+  payment.sent: "&aPaiement de &f{1} {2} &aenvoyé à &f{0}&a."
+  payment.received: "&aVous avez reçu &f{1} {2} &ade &f{0}&a."
