@@ -13,14 +13,14 @@ function render(){const q=$('search').value.toLowerCase();const list=files.filte
 function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function uploadFiles(){const input=$('fileInput');if(!input.files.length)return;const fd=new FormData();[...input.files].forEach(f=>fd.append('files',f));try{await api('/api/files?manager='+manager,{method:'POST',body:fd});input.value='';await loadFiles()}catch(e){alert(e.message)}}
 async function removeFile(id){if(!confirm('Supprimer ce fichier ?'))return;try{await api('/api/files/'+id,{method:'DELETE'});await loadFiles()}catch(e){alert(e.message)}}
-async function openAccounts(){ $('modal').hidden=false;try{const d=await api('/api/accounts');$('accounts').innerHTML=d.users.map(u=>`<div class="account"><span><b>${esc(u.username)}</b><small>${u.role}</small></span>${u.username!==me.username?`<button type="button" onclick="deleteAccount('${esc(u.username)}')">Supprimer</button>`:''}</div>`).join('')}catch(e){alert(e.message)}}
-function closeAccounts(){ $('modal').hidden=true; }
+async function openAccounts(){ const modal=$('modal'); modal.hidden=false; modal.style.display='grid'; try{const d=await api('/api/accounts');$('accounts').innerHTML=d.users.map(u=>`<div class="account"><span><b>${esc(u.username)}</b><small>${u.role}</small></span>${u.username!==me.username?`<button type="button" onclick="deleteAccount('${esc(u.username)}')">Supprimer</button>`:''}</div>`).join('')}catch(e){alert(e.message)}}
+function closeAccounts(){ const modal=$('modal'); if(!modal)return; modal.hidden=true; modal.style.display='none'; }
 async function createAccount(){try{await api('/api/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('newUser').value.trim(),password:$('newPass').value,role:$('newRole').value})});$('newUser').value='';$('newPass').value='';openAccounts()}catch(e){alert(e.message)}}
 async function deleteAccount(u){if(!confirm('Supprimer le compte '+u+' et tous ses fichiers ?'))return;try{await api('/api/accounts/'+encodeURIComponent(u),{method:'DELETE'});openAccounts()}catch(e){alert(e.message)}}
 
 document.addEventListener('DOMContentLoaded',()=>{
   const close=$('closeAccounts');
-  if(close) close.addEventListener('click', closeAccounts);
+  if(close) close.onclick=closeAccounts;
   const modal=$('modal');
   if(modal) modal.addEventListener('click',e=>{if(e.target===modal)closeAccounts()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape' && modal && !modal.hidden)closeAccounts()});
