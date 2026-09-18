@@ -37,7 +37,7 @@ const upload = multer({
     },
     filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeFileName(file.originalname)}`)
   }),
-  limits: { fileSize: Number(process.env.MAX_FILE_SIZE || 5 * 1024 * 1024 * 1024), files: 100 }
+  limits: { fileSize: Number(process.env.MAX_FILE_SIZE || 20 * 1024 * 1024 * 1024), files: 100 }
 });
 
 app.get('/api/status', (req, res) => {
