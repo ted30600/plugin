@@ -1,7 +1,20 @@
 let manager='1', files=[];
+const storageInfo=$('storage');
 const $=id=>document.getElementById(id);
 async function api(url,options={}){const r=await fetch(url,options);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Erreur serveur');return d;}
-async function loadFiles(){try{files=(await api('/api/files?manager='+manager)).files;render();}catch(e){showMessage(e.message,true);}}
+async function loadFiles(){
+  try{
+    files=(await api('/api/files?manager='+manager)).files;
+    render();
+    await loadStorage();
+  }catch(e){showMessage(e.message,true);}
+}
+async function loadStorage(){
+  try{
+    const s=(await api('/api/status')).storage;
+    storageInfo.textContent='Stockage : '+human(s.usedBytes)+' utilisés · '+human(s.freeBytes)+' restants · '+human(s.totalBytes)+' au total';
+  }catch(e){storageInfo.textContent='Stockage : impossible à calculer';}
+}
 function human(n){if(n<1024)return n+' o';if(n<1048576)return(n/1024).toFixed(1)+' Ko';if(n<1073741824)return(n/1048576).toFixed(1)+' Mo';return(n/1073741824).toFixed(2)+' Go';}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function render(){const q=$('search').value.toLowerCase();const list=files.filter(f=>f.name.toLowerCase().includes(q));$('count').textContent=files.length+' fichier'+(files.length>1?'s':'');$('files').innerHTML=list.map(f=>{const preview=f.mime.startsWith('image/')?'<img src="/api/files/'+f.id+'/view" loading="lazy" alt="">':f.mime.startsWith('video/')?'<video src="/api/files/'+f.id+'/view" controls preload="metadata"></video>':'<div class="icon">FILE</div>';return '<article><div class="preview">'+preview+'</div><div class="meta"><b title="'+esc(f.name)+'">'+esc(f.name)+'</b><small>'+human(f.size)+' · '+new Date(f.createdAt).toLocaleString('fr-FR')+'</small></div><div class="actions"><a href="/api/files/'+f.id+'/download">Télécharger</a><button type="button" onclick="removeFile(\''+f.id+'\')">Supprimer</button></div></article>';}).join('')||'<div class="empty">Aucun fichier dans cet espace.</div>'; }
