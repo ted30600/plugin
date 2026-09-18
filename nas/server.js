@@ -40,9 +40,25 @@ const upload = multer({
   limits: { fileSize: Number(process.env.MAX_FILE_SIZE || 20 * 1024 * 1024 * 1024), files: 100 }
 });
 
-app.get('/api/status', (req, res) => {
+async function getDirectorySize(dir) {
+  let total = 0;
+  for (const entry of await fsp.readdir(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) total += await getDirectorySize(full);
+    else if (entry.isFile()) {
+      try { total += (await fsp.stat(full)).size; } catch {}
+    }
+  }
+  return total;
+}
+
+app.get('/api/status', async (req, res) => {
   const files = readJson(FILES_FILE);
-  res.json({ ok: true, managers: MANAGERS, totalFiles: files.length });
+  const stat = fs.statfsSync(STORAGE);
+  const totalBytes = stat.blocks * stat.bsize;
+  const freeBytes = stat.bavail * stat.bsize;
+  const usedBytes = await getDirectorySize(STORAGE);
+  res.json({ ok: true, managers: MANAGERS, totalFiles: files.length, storage: { usedBytes, freeBytes, totalBytes } });
 });
 
 app.get('/api/files', (req, res) => {
