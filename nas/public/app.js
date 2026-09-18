@@ -1,5 +1,4 @@
 let manager='1', files=[];
-const storageInfo=$('storage');
 const $=id=>document.getElementById(id);
 async function api(url,options={}){const r=await fetch(url,options);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Erreur serveur');return d;}
 async function loadFiles(){
@@ -10,6 +9,7 @@ async function loadFiles(){
   }catch(e){showMessage(e.message,true);}
 }
 async function loadStorage(){
+  const storageInfo=$('storage');
   try{
     const s=(await api('/api/status')).storage;
     storageInfo.textContent='Stockage : '+human(s.usedBytes)+' utilisés · '+human(s.freeBytes)+' restants · '+human(s.totalBytes)+' au total';
