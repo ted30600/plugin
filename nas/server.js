@@ -126,6 +126,17 @@ app.post('/api/upload/chunk', async (req, res) => {
   }
 });
 
+app.delete('/api/upload/:uploadId', async (req, res) => {
+  const uploadId=String(req.params.uploadId||'');
+  if(!/^[0-9a-f-]{36}$/i.test(uploadId)) return res.status(400).json({error:'Identifiant d’envoi invalide'});
+  try{
+    await fsp.rm(path.join(CHUNKS,uploadId),{recursive:true,force:true});
+    res.json({ok:true});
+  }catch(err){
+    res.status(500).json({error:'Impossible de nettoyer l’envoi'});
+  }
+});
+
 app.post('/api/upload/complete', async (req, res) => {
   const manager = String(req.body?.manager || '1');
   const uploadId = String(req.body?.uploadId || '');
