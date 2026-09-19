@@ -5,12 +5,14 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const { pipeline } = require('stream/promises');
+const { pipeline } = require('stream/promises');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
 const DATA = path.join(ROOT, 'data');
 const STORAGE = path.join(DATA, 'storage');
+const CHUNKS = path.join(DATA, 'chunks');
 const UPLOADS = path.join(DATA, 'uploads');
 const FILES_FILE = path.join(DATA, 'files.json');
 const MANAGERS = ['1', '2', '3'];
@@ -18,6 +20,7 @@ const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE || 20 * 1024 * 1024 * 102
 
 function ensureData() {
   fs.mkdirSync(STORAGE, { recursive: true });
+  fs.mkdirSync(CHUNKS, { recursive: true });
   fs.mkdirSync(UPLOADS, { recursive: true });
   if (!fs.existsSync(FILES_FILE)) fs.writeFileSync(FILES_FILE, '[]');
 }
@@ -33,6 +36,9 @@ function validUploadId(id) {
 ensureData();
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(ROOT, 'public')));
+
+const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE || 20 * 1024 * 1024 * 1024);
+const CHUNK_SIZE = 25 * 1024 * 1024;
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -74,6 +80,94 @@ app.get('/api/files', (req, res) => {
   const files = readJson(FILES_FILE).filter(f => f.manager === manager)
     .map(f => ({ id: f.id, name: f.originalName, size: f.size, mime: f.mime, createdAt: f.createdAt }));
   res.json({ files });
+});
+
+app.post('/api/upload/chunk', async (req, res) => {
+  const manager = String(req.query.manager || '1');
+  const uploadId = String(req.query.uploadId || '');
+  const chunkIndex = Number(req.query.chunkIndex);
+  const totalChunks = Number(req.query.totalChunks);
+  const totalSize = Number(req.query.totalSize);
+  const originalName = safeFileName(String(req.query.filename || 'video'));
+  const mime = String(req.query.mime || 'video/mp4');
+
+  if (!MANAGERS.includes(manager)) return res.status(400).json({ error: 'Gestionnaire invalide' });
+  if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return res.status(400).json({ error: 'Identifiant d’envoi invalide' });
+  if (!Number.isInteger(chunkIndex) || chunkIndex < 0) return res.status(400).json({ error: 'Morceau invalide' });
+  if (!Number.isInteger(totalChunks) || totalChunks < 1 || totalChunks > 10000) return res.status(400).json({ error: 'Nombre de morceaux invalide' });
+  if (chunkIndex >= totalChunks) return res.status(400).json({ error: 'Morceau hors limites' });
+  if (!Number.isSafeInteger(totalSize) || totalSize < 1 || totalSize > MAX_FILE_SIZE) return res.status(400).json({ error: 'Taille de vidéo invalide' });
+
+  const dir = path.join(CHUNKS, uploadId);
+  const partPath = path.join(dir, String(chunkIndex) + '.part');
+  const metaPath = path.join(dir, 'meta.json');
+
+  try {
+    await fsp.mkdir(dir, { recursive: true });
+    if (fs.existsSync(partPath)) return res.status(409).json({ error: 'Ce morceau a déjà été envoyé' });
+    if (fs.existsSync(metaPath)) {
+      const meta = readJson(metaPath);
+      if (meta.manager !== manager || meta.totalChunks !== totalChunks || meta.totalSize !== totalSize) return res.status(400).json({ error: 'Les informations de l’envoi ne correspondent pas' });
+    } else {
+      writeJson(metaPath, { manager, uploadId, totalChunks, totalSize, originalName, mime, createdAt: new Date().toISOString() });
+    }
+    let bytes = 0;
+    const out = fs.createWriteStream(partPath, { flags: 'wx' });
+    req.on('data', chunk => {
+      bytes += chunk.length;
+      if (bytes > CHUNK_SIZE) req.destroy(new Error('Morceau trop gros'));
+    });
+    await pipeline(req, out);
+    if (bytes > CHUNK_SIZE) throw new Error('Morceau trop gros');
+    res.json({ ok: true, chunkIndex, receivedBytes: bytes });
+  } catch (err) {
+    try { await fsp.unlink(partPath); } catch {}
+    res.status(400).json({ error: err.message || 'Erreur pendant l’envoi du morceau' });
+  }
+});
+
+app.post('/api/upload/complete', async (req, res) => {
+  const manager = String(req.body?.manager || '1');
+  const uploadId = String(req.body?.uploadId || '');
+  if (!MANAGERS.includes(manager)) return res.status(400).json({ error: 'Gestionnaire invalide' });
+  if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return res.status(400).json({ error: 'Identifiant d’envoi invalide' });
+  const dir = path.join(CHUNKS, uploadId);
+  const metaPath = path.join(dir, 'meta.json');
+  try {
+    const meta = readJson(metaPath);
+    if (meta.manager !== manager) return res.status(400).json({ error: 'Gestionnaire invalide pour cet envoi' });
+    const parts = [];
+    let totalBytes = 0;
+    for (let i = 0; i < meta.totalChunks; i++) {
+      const partPath = path.join(dir, String(i) + '.part');
+      const stat = await fsp.stat(partPath);
+      if (!stat.isFile() || stat.size > CHUNK_SIZE) throw new Error('Morceau manquant ou invalide : ' + (i + 1));
+      parts.push(partPath);
+      totalBytes += stat.size;
+    }
+    if (totalBytes !== meta.totalSize) throw new Error('Taille finale incorrecte');
+    if (totalBytes > MAX_FILE_SIZE) throw new Error('La vidéo dépasse la taille maximale autorisée');
+    const managerDir = path.join(STORAGE, manager);
+    await fsp.mkdir(managerDir, { recursive: true });
+    const storedName = Date.now() + '-' + crypto.randomBytes(6).toString('hex') + '-' + meta.originalName;
+    const finalPath = path.join(managerDir, storedName);
+    const out = fs.createWriteStream(finalPath, { flags: 'wx' });
+    try {
+      for (const partPath of parts) await pipeline(fs.createReadStream(partPath), out, { end: false });
+      await new Promise((resolve, reject) => { out.once('error', reject); out.end(resolve); });
+    } catch (err) {
+      out.destroy();
+      try { await fsp.unlink(finalPath); } catch {}
+      throw err;
+    }
+    const records = readJson(FILES_FILE);
+    records.push({ id: crypto.randomUUID(), manager, originalName: meta.originalName, storedName, path: finalPath, size: totalBytes, mime: meta.mime || 'video/mp4', createdAt: new Date().toISOString() });
+    writeJson(FILES_FILE, records);
+    await fsp.rm(dir, { recursive: true, force: true });
+    res.json({ ok: true, size: totalBytes });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Impossible de terminer l’envoi' });
+  }
 });
 
 app.post('/api/files', (req, res) => {
