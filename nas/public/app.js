@@ -1,6 +1,6 @@
 let manager='1', files=[];
 const $=id=>document.getElementById(id);
-const VIDEO_CHUNK_SIZE=50*1024*1024;
+const VIDEO_CHUNK_SIZE=25*1024*1024;
 
 async function api(url,options={}){const r=await fetch(url,options);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Erreur serveur');return d;}
 async function loadFiles(){
@@ -31,16 +31,19 @@ async function uploadVideo(file){
       const end=Math.min(file.size,start+VIDEO_CHUNK_SIZE);
       const chunk=file.slice(start,end);
       showMessage('Envoi de « '+file.name+' » : '+Math.round(((i+1)/totalChunks)*100)+' %');
-      await api('/api/video/chunk?'+new URLSearchParams({
-        manager,uploadId,chunkIndex:String(i),totalChunks:String(totalChunks),totalSize:String(file.size),name:file.name
-      }),{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:chunk});
+      await api('/api/upload/chunk?'+new URLSearchParams({
+        manager,
+        uploadId,
+        chunkIndex:String(i),
+        totalChunks:String(totalChunks),
+        totalSize:String(file.size),
+        filename:file.name,
+        mime:file.type||'video/mp4'
+      }),{method:'POST',headers:{'Content-Type':file.type||'application/octet-stream'},body:chunk});
     }
-    await api('/api/video/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      manager,uploadId,totalChunks,totalSize:file.size,name:file.name,mime:file.type||'video/mp4'
-    })});
-    showMessage('Vidéo ajoutée ✓');
+    await api('/api/upload/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({manager,uploadId})});
   }catch(e){
-    try{await api('/api/video/'+uploadId,{method:'DELETE'});}catch{}
+    try{await api('/api/upload/'+uploadId,{method:'DELETE'});}catch{}
     throw e;
   }
 }
