@@ -4,23 +4,30 @@ const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
+const { pipeline } = require('stream/promises');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
 const DATA = path.join(ROOT, 'data');
 const STORAGE = path.join(DATA, 'storage');
+const UPLOADS = path.join(DATA, 'uploads');
 const FILES_FILE = path.join(DATA, 'files.json');
 const MANAGERS = ['1', '2', '3'];
+const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE || 20 * 1024 * 1024 * 1024);
 
 function ensureData() {
   fs.mkdirSync(STORAGE, { recursive: true });
+  fs.mkdirSync(UPLOADS, { recursive: true });
   if (!fs.existsSync(FILES_FILE)) fs.writeFileSync(FILES_FILE, '[]');
 }
 function readJson(file) { return JSON.parse(fs.readFileSync(file, 'utf8')); }
 function writeJson(file, value) { fs.writeFileSync(file, JSON.stringify(value, null, 2)); }
 function safeFileName(name) {
   return path.basename(name).replace(/[^\p{L}\p{N}._ ()-]/gu, '_').slice(0, 180) || 'fichier';
+}
+function validUploadId(id) {
+  return typeof id === 'string' && /^[a-f0-9-]{20,80}$/i.test(id);
 }
 
 ensureData();
@@ -37,7 +44,7 @@ const upload = multer({
     },
     filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeFileName(file.originalname)}`)
   }),
-  limits: { fileSize: Number(process.env.MAX_FILE_SIZE || 20 * 1024 * 1024 * 1024), files: 100 }
+  limits: { fileSize: MAX_FILE_SIZE, files: 100 }
 });
 
 async function getDirectorySize(dir) {
@@ -87,6 +94,98 @@ app.post('/api/files', (req, res) => {
     writeJson(FILES_FILE, records);
     res.json({ ok: true, count: (req.files || []).length });
   });
+});
+
+// Upload vidéo par morceaux : chaque requête reste sous la limite Cloudflare.
+app.post('/api/video/chunk', async (req, res) => {
+  const manager = String(req.query.manager || '1');
+  const uploadId = String(req.query.uploadId || '');
+  const chunkIndex = Number(req.query.chunkIndex);
+  const totalChunks = Number(req.query.totalChunks);
+  const totalSize = Number(req.query.totalSize);
+  const originalName = safeFileName(String(req.query.name || 'video'));
+  if (!MANAGERS.includes(manager)) return res.status(400).json({ error: 'Gestionnaire invalide' });
+  if (!validUploadId(uploadId)) return res.status(400).json({ error: 'Identifiant d\'upload invalide' });
+  if (!Number.isInteger(chunkIndex) || !Number.isInteger(totalChunks) || chunkIndex < 0 || totalChunks < 1 || chunkIndex >= totalChunks) {
+    return res.status(400).json({ error: 'Morceau invalide' });
+  }
+  if (!Number.isFinite(totalSize) || totalSize < 1 || totalSize > MAX_FILE_SIZE) {
+    return res.status(400).json({ error: 'Vidéo trop volumineuse' });
+  }
+
+  const dir = path.join(UPLOADS, uploadId);
+  const filePath = path.join(dir, `${String(chunkIndex).padStart(8, '0')}.part`);
+  try {
+    await fsp.mkdir(dir, { recursive: true });
+    await pipeline(req, fs.createWriteStream(filePath));
+    const size = (await fsp.stat(filePath)).size;
+    res.json({ ok: true, chunkIndex, size, totalChunks, totalSize });
+  } catch (e) {
+    try { await fsp.unlink(filePath); } catch {}
+    res.status(500).json({ error: 'Échec de l\'envoi du morceau' });
+  }
+});
+
+app.post('/api/video/complete', async (req, res) => {
+  const { manager, uploadId, totalChunks, totalSize, name, mime } = req.body || {};
+  const managerId = String(manager || '1');
+  const id = String(uploadId || '');
+  const count = Number(totalChunks);
+  const expectedSize = Number(totalSize);
+  const originalName = safeFileName(String(name || 'video'));
+  if (!MANAGERS.includes(managerId)) return res.status(400).json({ error: 'Gestionnaire invalide' });
+  if (!validUploadId(id) || !Number.isInteger(count) || count < 1 || count > 100000) return res.status(400).json({ error: 'Upload invalide' });
+  if (!Number.isFinite(expectedSize) || expectedSize < 1 || expectedSize > MAX_FILE_SIZE) return res.status(400).json({ error: 'Vidéo trop volumineuse' });
+
+  const dir = path.join(UPLOADS, id);
+  const finalDir = path.join(STORAGE, managerId);
+  const storedName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${originalName}`;
+  const finalPath = path.join(finalDir, storedName);
+  try {
+    await fsp.mkdir(finalDir, { recursive: true });
+    const parts = [];
+    let actualSize = 0;
+    for (let i = 0; i < count; i++) {
+      const part = path.join(dir, `${String(i).padStart(8, '0')}.part`);
+      const stat = await fsp.stat(part);
+      parts.push(part);
+      actualSize += stat.size;
+    }
+    if (actualSize !== expectedSize) throw new Error('Taille finale incorrecte');
+
+    const output = fs.createWriteStream(finalPath);
+    try {
+      for (const part of parts) await pipeline(fs.createReadStream(part), output, { end: false });
+    } finally {
+      output.end();
+      await new Promise(resolve => output.once('close', resolve));
+    }
+
+    const records = readJson(FILES_FILE);
+    records.push({
+      id: crypto.randomUUID(),
+      manager: managerId,
+      originalName,
+      storedName,
+      path: finalPath,
+      size: actualSize,
+      mime: String(mime || 'video/mp4'),
+      createdAt: new Date().toISOString()
+    });
+    writeJson(FILES_FILE, records);
+    await fsp.rm(dir, { recursive: true, force: true });
+    res.json({ ok: true, id: records[records.length - 1].id, name: originalName, size: actualSize });
+  } catch (e) {
+    try { await fsp.unlink(finalPath); } catch {}
+    res.status(400).json({ error: e.message === 'Taille finale incorrecte' ? e.message : 'Impossible de finaliser la vidéo' });
+  }
+});
+
+app.delete('/api/video/:uploadId', async (req, res) => {
+  const id = String(req.params.uploadId || '');
+  if (!validUploadId(id)) return res.status(400).json({ error: 'Identifiant d\'upload invalide' });
+  await fsp.rm(path.join(UPLOADS, id), { recursive: true, force: true });
+  res.json({ ok: true });
 });
 
 function findFile(id) { return readJson(FILES_FILE).find(f => f.id === id); }
