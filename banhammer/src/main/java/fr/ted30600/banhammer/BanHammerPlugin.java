@@ -507,38 +507,32 @@ public final class BanHammerPlugin extends JavaPlugin implements Listener {
 
             event.setCancelled(true);
 
-            // Le créateur doit laisser les autres joueurs casser le bloc.
-            if (breaker.getUniqueId().equals(contract.creator)) {
-                breaker.sendMessage(Component.text(
-                        "Un autre joueur doit casser ce bloc.",
-                        NamedTextColor.RED));
-                return;
-            }
-
             if (System.currentTimeMillis() > contract.endTime) {
+                event.setCancelled(true);
                 expireUnbanContract(contract.targetName);
                 return;
             }
 
+            // Casser le bloc ANNULE le contrat.
+            // Le joueur reste banni : il faut fabriquer un nouveau Unban Hammer
+            // pour recommencer un nouveau contrat.
             event.setDropItems(false);
-
-            Bukkit.getBanList(BanList.Type.NAME)
-                    .pardon(contract.targetName);
-
             restoreBlock(contract);
+
             if (contract.task != null) contract.task.cancel();
             unbanContracts.remove(contract.targetName);
 
             breaker.sendMessage(Component.text(
-                    contract.targetName + " a été débanni !",
-                    NamedTextColor.GREEN));
+                    "Le contrat d'unban a été annulé : le bloc a été cassé. "
+                            + "Il faut fabriquer un nouveau Unban Hammer.",
+                    NamedTextColor.RED));
 
             Player creator = Bukkit.getPlayer(contract.creator);
             if (creator != null) {
                 creator.sendMessage(Component.text(
-                        "Le bloc a été cassé : "
-                                + contract.targetName + " est débanni.",
-                        NamedTextColor.GREEN));
+                        "Le bloc a été cassé : contrat d'unban annulé. "
+                                + "Il faut fabriquer un nouveau Unban Hammer.",
+                        NamedTextColor.RED));
             }
             return;
         }
