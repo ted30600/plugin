@@ -43,6 +43,14 @@ public final class PasswordStore {
         save();
     }
 
+    public boolean reset(UUID uuid) {
+        String path = "players." + uuid;
+        if (!data.contains(path)) return false;
+        data.set(path, null);
+        save();
+        return true;
+    }
+
     public boolean verify(UUID uuid, String password) {
         String stored = data.getString("players." + uuid);
         if (stored == null) return false;
