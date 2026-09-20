@@ -3,6 +3,7 @@ package fr.ted30600.banhammer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.BanList;
+import org.bukkit.BanEntry;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -223,7 +224,7 @@ public final class BanHammerPlugin extends JavaPlugin implements Listener {
 
         int slot = 0;
 
-        for (BanList.Entry<?> entry :
+        for (BanEntry entry :
                 Bukkit.getBanList(BanList.Type.NAME).getEntries()) {
 
             if (slot >= 27) break;
