@@ -1,9 +1,9 @@
 name: NovaLobby
-version: 1.0.0
+version: 1.1.0
 main: fr.ted30600.zombielogin.ZombieLoginPlugin
 api-version: '1.21'
 author: ted30600
-description: NovaLobby - système de lobby automatique pour Paper 1.21.10
+description: NovaLobby - système de lobby et login pour Paper 1.21.10
 commands:
   login:
     description: Log into your account
@@ -17,7 +17,10 @@ commands:
   setlobby:
     description: Set the current location as the lobby
     usage: /setlobby
+  resetpassword:
+    description: Reset a player's password
+    usage: /resetpassword <joueur>
 permissions:
-  ultralogin.admin:
-    description: Manage NovaLobby and set the lobby
+  novalobby.admin:
+    description: Manage NovaLobby, set the lobby and reset passwords
     default: op
