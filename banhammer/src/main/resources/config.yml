@@ -1,0 +1,28 @@
+# Les crafts sont configurables ici.
+# Remplace les matériaux si tu m'envoies les crafts exacts.
+ban-hammer:
+  material: NETHERITE_AXE
+  name: "§cBan Hammer"
+  recipe:
+    shape:
+      - "ODO"
+      - "SDS"
+      - " S "
+    ingredients:
+      O: OBSIDIAN
+      D: DIAMOND_BLOCK
+      S: STICK
+
+unban-hammer:
+  material: GOLDEN_AXE
+  name: "§aUnban Hammer"
+  recipe:
+    shape:
+      - "OGO"
+      - "GAG"
+      - " S "
+    ingredients:
+      O: OBSIDIAN
+      G: GOLD_BLOCK
+      A: AMETHYST_BLOCK
+      S: STICK
