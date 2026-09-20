@@ -18,51 +18,58 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public final class BanHammerPlugin extends JavaPlugin implements Listener {
-    private NamespacedKey itemKey;
-    private static final String BAN_GUI = "§cBan Hammer";
-    private static final String UNBAN_GUI = "§aUnban Hammer";
+    private NamespacedKey hammerKey;
+    private static final Component BAN_TITLE = Component.text("Ban Hammer", NamedTextColor.RED);
+    private static final Component UNBAN_TITLE = Component.text("Unban Hammer", NamedTextColor.GREEN);
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        itemKey = new NamespacedKey(this, "hammer_type");
+        hammerKey = new NamespacedKey(this, "hammer_type");
         Bukkit.getPluginManager().registerEvents(this, this);
         registerRecipes();
         Objects.requireNonNull(getCommand("banhammer")).setExecutor(this::command);
         Objects.requireNonNull(getCommand("unbanhammer")).setExecutor(this::command);
-        getLogger().info("BanHammer activé pour Paper 1.21.10");
+        getLogger().info("BanHammer activé.");
     }
 
     private boolean command(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player p)) {
-            sender.sendMessage("Commande réservée aux joueurs.");
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Cette commande est réservée aux joueurs.");
             return true;
         }
-        if (!p.hasPermission("banhammer.use")) {
-            p.sendMessage(Component.text("Tu n'as pas la permission.", NamedTextColor.RED));
+        if (!player.hasPermission("banhammer.use")) {
+            player.sendMessage(Component.text("Tu n'as pas la permission.", NamedTextColor.RED));
             return true;
         }
-        if (label.equalsIgnoreCase("banhammer")) p.getInventory().addItem(createHammer("ban"));
-        else p.getInventory().addItem(createHammer("unban"));
-        p.sendMessage(Component.text("Marteau donné.", NamedTextColor.GREEN));
+
+        String type = label.equalsIgnoreCase("banhammer") ? "ban" : "unban";
+        player.getInventory().addItem(createHammer(type));
+        player.sendMessage(Component.text("Marteau donné.", NamedTextColor.GREEN));
         return true;
     }
 
     private ItemStack createHammer(String type) {
         String path = type.equals("ban") ? "ban-hammer" : "unban-hammer";
-        Material material = Material.valueOf(getConfig().getString(path + ".material"));
+        Material material = Material.valueOf(
+                Objects.requireNonNull(getConfig().getString(path + ".material"))
+        );
+
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(getConfig().getString(path + ".name").replace("§", "")));
-        meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, type);
+        String name = getConfig().getString(path + ".name", type);
+        meta.displayName(Component.text(name.replaceAll("§.", "")));
+        meta.getPersistentDataContainer().set(
+                hammerKey, PersistentDataType.STRING, type
+        );
         item.setItemMeta(meta);
         return item;
     }
@@ -73,88 +80,154 @@ public final class BanHammerPlugin extends JavaPlugin implements Listener {
     }
 
     private void registerRecipe(String type, String keyName, String path) {
-        Material resultMaterial = Material.valueOf(getConfig().getString(path + ".material"));
-        ShapedRecipe recipe = new ShapedRecipe(new NamespacedKey(this, keyName), createHammer(type));
-        List<String> shape = getConfig().getStringList(path + ".recipe.shape");
-        recipe.shape(shape.toArray(new String[0]));
-        for (String key : getConfig().getConfigurationSection(path + ".recipe.ingredients").getKeys(false)) {
-            Material m = Material.valueOf(getConfig().getString(path + ".recipe.ingredients." + key));
-            recipe.setIngredient(key.charAt(0), m);
+        String[] shape = getConfig().getStringList(
+                path + ".recipe.shape"
+        ).toArray(new String[0]);
+
+        ShapedRecipe recipe = new ShapedRecipe(
+                new NamespacedKey(this, keyName),
+                createHammer(type)
+        );
+        recipe.shape(shape);
+
+        var section = getConfig().getConfigurationSection(
+                path + ".recipe.ingredients"
+        );
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                Material material = Material.valueOf(
+                        Objects.requireNonNull(
+                                getConfig().getString(
+                                        path + ".recipe.ingredients." + key
+                                )
+                        )
+                );
+                recipe.setIngredient(key.charAt(0), material);
+            }
         }
+
         Bukkit.addRecipe(recipe);
     }
 
     @EventHandler
-    public void onInteract(PlayerInteractEvent e) {
-        if (!e.getAction().isRightClick()) return;
-        ItemStack item = e.getItem();
+    public void onHammerUse(PlayerInteractEvent event) {
+        if (!event.getAction().isRightClick()) return;
+
+        ItemStack item = event.getItem();
         if (item == null || !item.hasItemMeta()) return;
-        String type = item.getItemMeta().getPersistentDataContainer().get(itemKey, PersistentDataType.STRING);
+
+        String type = item.getItemMeta().getPersistentDataContainer()
+                .get(hammerKey, PersistentDataType.STRING);
         if (type == null) return;
-        e.setCancelled(true);
-        if (!e.getPlayer().hasPermission("banhammer.use")) return;
-        if (type.equals("ban")) openBanGui(e.getPlayer());
-        else openUnbanGui(e.getPlayer());
+
+        event.setCancelled(true);
+
+        Player player = event.getPlayer();
+        if (!player.hasPermission("banhammer.use")) {
+            player.sendMessage(Component.text("Tu n'as pas la permission.", NamedTextColor.RED));
+            return;
+        }
+
+        if (type.equals("ban")) openBanGui(player);
+        else openUnbanGui(player);
     }
 
     private void openBanGui(Player viewer) {
-        Inventory inv = Bukkit.createInventory(null, 27, BAN_GUI);
+        Inventory inventory = Bukkit.createInventory(null, 27, BAN_TITLE);
         int slot = 0;
+
         for (Player target : Bukkit.getOnlinePlayers()) {
             if (target.equals(viewer)) continue;
+            if (slot >= 27) break;
+
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-            var meta = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
+            SkullMeta meta = (SkullMeta) head.getItemMeta();
             meta.setOwningPlayer(target);
             meta.displayName(Component.text(target.getName(), NamedTextColor.WHITE));
-            meta.lore(List.of(Component.text("Clique pour bannir", NamedTextColor.RED)));
+            meta.lore(List.of(
+                    Component.text("Clique pour bannir", NamedTextColor.RED)
+            ));
             head.setItemMeta(meta);
-            if (slot < 27) inv.setItem(slot++, head);
+            inventory.setItem(slot++, head);
         }
-        viewer.openInventory(inv);
+
+        viewer.openInventory(inventory);
     }
 
     private void openUnbanGui(Player viewer) {
-        Inventory inv = Bukkit.createInventory(null, 27, UNBAN_GUI);
+        Inventory inventory = Bukkit.createInventory(null, 27, UNBAN_TITLE);
         int slot = 0;
-        BanList<?> list = Bukkit.getBanList(BanList.Type.NAME);
-        for (BanList.Entry<?> entry : list.getEntries()) {
+
+        for (BanList.Entry<?> entry : Bukkit.getBanList(BanList.Type.NAME).getEntries()) {
+            if (slot >= 27) break;
+
             String name = entry.getTarget();
             OfflinePlayer target = Bukkit.getOfflinePlayer(name);
+
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-            var meta = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
+            SkullMeta meta = (SkullMeta) head.getItemMeta();
             meta.setOwningPlayer(target);
             meta.displayName(Component.text(name, NamedTextColor.WHITE));
-            meta.lore(List.of(Component.text("Clique pour débannir", NamedTextColor.GREEN)));
+            meta.lore(List.of(
+                    Component.text("Clique pour débannir", NamedTextColor.GREEN)
+            ));
             head.setItemMeta(meta);
-            if (slot < 27) inv.setItem(slot++, head);
+            inventory.setItem(slot++, head);
         }
-        viewer.openInventory(inv);
+
+        viewer.openInventory(inventory);
     }
 
     @EventHandler
-    public void onInventoryClick(InventoryClickEvent e) {
-        if (!(e.getWhoClicked() instanceof Player p)) return;
-        String title = e.getView().title().toString();
-        if (!title.contains("Ban Hammer") && !title.contains("Unban Hammer")) return;
-        e.setCancelled(true);
-        if (e.getCurrentItem() == null || e.getCurrentItem().getType() != Material.PLAYER_HEAD) return;
-        ItemMeta meta = e.getCurrentItem().getItemMeta();
-        if (!(meta instanceof org.bukkit.inventory.meta.SkullMeta skull)) return;
-        OfflinePlayer target = skull.getOwningPlayer();
+    public void onGuiClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+
+        Component title = event.getView().title();
+        boolean banGui = title.equals(BAN_TITLE);
+        boolean unbanGui = title.equals(UNBAN_TITLE);
+        if (!banGui && !unbanGui) return;
+
+        event.setCancelled(true);
+
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType() != Material.PLAYER_HEAD) return;
+        if (!(clicked.getItemMeta() instanceof SkullMeta meta)) return;
+
+        OfflinePlayer target = meta.getOwningPlayer();
         if (target == null || target.getName() == null) return;
 
-        if (title.contains("Ban Hammer")) {
-            if (!p.hasPermission("banhammer.ban")) return;
-            String name = target.getName();
-            Bukkit.getBanList(BanList.Type.NAME).addBan(name, "Banni avec le Ban Hammer", null, p.getName());
+        String name = target.getName();
+
+        if (banGui) {
+            if (!player.hasPermission("banhammer.ban")) return;
+
+            Bukkit.getBanList(BanList.Type.NAME).addBan(
+                    name,
+                    "Banni avec le Ban Hammer",
+                    null,
+                    player.getName()
+            );
+
             Player online = Bukkit.getPlayerExact(name);
-            if (online != null) online.kick(Component.text("Tu as été banni.", NamedTextColor.RED));
-            p.sendMessage(Component.text(name + " a été banni.", NamedTextColor.RED));
+            if (online != null) {
+                online.kick(Component.text(
+                        "Tu as été banni avec le Ban Hammer.",
+                        NamedTextColor.RED
+                ));
+            }
+
+            player.sendMessage(Component.text(
+                    name + " a été banni.", NamedTextColor.RED
+            ));
         } else {
-            if (!p.hasPermission("banhammer.unban")) return;
-            Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
-            p.sendMessage(Component.text(target.getName() + " a été débanni.", NamedTextColor.GREEN));
+            if (!player.hasPermission("banhammer.unban")) return;
+
+            Bukkit.getBanList(BanList.Type.NAME).pardon(name);
+            player.sendMessage(Component.text(
+                    name + " a été débanni.", NamedTextColor.GREEN
+            ));
         }
-        p.closeInventory();
+
+        player.closeInventory();
     }
 }
