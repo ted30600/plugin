@@ -1,9 +1,9 @@
 name: BanHammer
-version: 1.0.0
+version: 1.1.0
 main: fr.ted30600.banhammer.BanHammerPlugin
-api-version: '1.21'
+api-version: '26.2'
 author: Ted30600
-description: Ban Hammer et Unban Hammer avec interfaces de 27 cases
+description: Ban Hammer et Unban Hammer avec contrats temporisés
 permissions:
   banhammer.use:
     default: op
