@@ -1,28 +1,31 @@
-# Les crafts sont configurables ici.
-# Remplace les matériaux si tu m'envoies les crafts exacts.
+# Recettes reproduites d'après les deux captures.
 ban-hammer:
   material: NETHERITE_AXE
   name: "§cBan Hammer"
   recipe:
     shape:
-      - "ODO"
-      - "SDS"
-      - " S "
+      - "CSC"
+      - "GdG"
+      - "CDC"
     ingredients:
-      O: OBSIDIAN
-      D: DIAMOND_BLOCK
-      S: STICK
+      C: SCULK_CATALYST
+      S: NETHERITE_SWORD
+      G: GOLDEN_APPLE
+      d: CHEST
+      D: DISPENSER
 
 unban-hammer:
-  material: GOLDEN_AXE
+  material: NETHERITE_AXE
   name: "§aUnban Hammer"
   recipe:
     shape:
-      - "OGO"
-      - "GAG"
-      - " S "
+      - "SCE"
+      - "GDC"
+      - "GPG"
     ingredients:
-      O: OBSIDIAN
-      G: GOLD_BLOCK
-      A: AMETHYST_BLOCK
-      S: STICK
+      S: NETHERITE_SWORD
+      C: SCULK_CATALYST
+      E: IRON_BLOCK
+      G: GOLDEN_APPLE
+      D: DISPENSER
+      P: NETHERITE_PICKAXE
