@@ -1,0 +1,15 @@
+name: HeartSteal
+version: 1.0.0
+main: fr.ted30600.heartsteal.HeartStealPlugin
+api-version: '26.2'
+description: Un coeur permanent gagné à chaque kill joueur, perdu à chaque mort PvP.
+author: ted30600
+commands:
+  heartsteal:
+    description: Gestion des coeurs HeartSteal
+    usage: /heartsteal <reset|set|give|take> [joueur] [nombre]
+    permission: heartsteal.admin
+permissions:
+  heartsteal.admin:
+    description: Permet de gérer les coeurs HeartSteal
+    default: op
