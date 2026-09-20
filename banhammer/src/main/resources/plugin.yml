@@ -1,0 +1,22 @@
+name: BanHammer
+version: 1.0.0
+main: fr.ted30600.banhammer.BanHammerPlugin
+api-version: '1.21'
+author: Ted30600
+description: Ban Hammer et Unban Hammer avec interfaces de 27 cases
+permissions:
+  banhammer.use:
+    default: op
+  banhammer.ban:
+    default: op
+  banhammer.unban:
+    default: op
+commands:
+  banhammer:
+    description: Donne le Ban Hammer
+    usage: /banhammer
+    permission: banhammer.use
+  unbanhammer:
+    description: Donne le Unban Hammer
+    usage: /unbanhammer
+    permission: banhammer.use
