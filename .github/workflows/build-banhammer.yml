@@ -1,4 +1,4 @@
-name: Build BanHammer
+name: Build BanHammer 26.2
 
 on:
   workflow_dispatch:
@@ -18,12 +18,12 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
           cache: maven
       - name: Build
-        run: mvn -B package
-      - name: Upload plugin JAR
+        run: mvn -B clean package
+      - name: Upload BanHammer-26.2.jar
         uses: actions/upload-artifact@v4
         with:
-          name: BanHammer
-          path: banhammer/target/BanHammer.jar
+          name: BanHammer-26.2
+          path: banhammer/target/BanHammer-26.2.jar
