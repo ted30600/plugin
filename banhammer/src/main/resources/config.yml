@@ -29,3 +29,7 @@ unban-hammer:
       G: GOLDEN_APPLE
       D: DISPENSER
       P: NETHERITE_PICKAXE
+
+unban-contract:
+  # Bloc temporaire que les autres joueurs doivent casser.
+  block: RESPAWN_ANCHOR
