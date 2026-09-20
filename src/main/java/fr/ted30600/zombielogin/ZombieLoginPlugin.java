@@ -79,7 +79,7 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
         if (getCommand("setlobby") != null) {
             getCommand("setlobby").setExecutor((sender, command, label, args) -> {
                 if (!(sender instanceof Player player)) return true;
-                if (!player.hasPermission("ultralogin.admin")) {
+                if (!player.hasPermission("novalobby.admin")) {
                     msg(player, "no-permission");
                     return true;
                 }
@@ -96,7 +96,43 @@ public final class ZombieLoginPlugin extends JavaPlugin implements Listener {
             });
         }
 
-        getLogger().info("UltraLogin activé - /lobby disponible, lobby automatique à la connexion.");
+        if (getCommand("resetpassword") != null) {
+            getCommand("resetpassword").setExecutor((sender, command, label, args) -> {
+                if (!(sender instanceof Player player)) return true;
+                if (!player.hasPermission("novalobby.admin")) {
+                    msg(player, "no-permission");
+                    return true;
+                }
+                if (args.length != 1) {
+                    player.sendMessage(Component.text("Utilisation : /resetpassword <joueur>", NamedTextColor.RED));
+                    return true;
+                }
+                Player target = Bukkit.getPlayerExact(args[0]);
+                UUID uuid;
+                if (target != null) {
+                    uuid = target.getUniqueId();
+                } else {
+                    player.sendMessage(Component.text("Joueur introuvable ou hors ligne.", NamedTextColor.RED));
+                    return true;
+                }
+                if (!passwords.reset(uuid)) {
+                    player.sendMessage(Component.text("Ce joueur n'a pas de mot de passe enregistré.", NamedTextColor.RED));
+                    return true;
+                }
+                authenticated.remove(uuid);
+                BukkitTask task = kickTasks.remove(uuid);
+                if (task != null) task.cancel();
+                player.sendMessage(Component.text("Mot de passe de " + target.getName() + " réinitialisé. Il peut maintenant utiliser /register.", NamedTextColor.GREEN));
+                if (target.isOnline()) {
+                    target.setGameMode(GameMode.ADVENTURE);
+                    target.setInvulnerable(true);
+                    target.sendMessage(Component.text("Votre mot de passe a été réinitialisé par un administrateur. Utilisez /register <mot de passe> <mot de passe>.", NamedTextColor.YELLOW));
+                }
+                return true;
+            });
+        }
+
+        getLogger().info("NovaLobby activé - /lobby disponible, lobby automatique à la connexion.");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
