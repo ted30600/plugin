@@ -7,6 +7,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,7 +19,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-public final class NovaBedrockPlugin extends JavaPlugin implements Listener {
+public final class NovaBedrockPlugin extends JavaPlugin implements Listener, CommandExecutor {
     private static final LegacyComponentSerializer LEGACY =
             LegacyComponentSerializer.legacyAmpersand();
 
@@ -25,12 +27,13 @@ public final class NovaBedrockPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         getServer().getPluginManager().registerEvents(this, this);
-        Command command = getCommand("bedrock");
-        if (command != null) command.setExecutor(this::onCommand);
+        PluginCommand command = getCommand("bedrock");
+        if (command != null) command.setExecutor(this);
         getLogger().info("NovaBedrock active - /bedrock");
     }
 
-    private boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Cette commande est utilisable par un joueur.");
             return true;
