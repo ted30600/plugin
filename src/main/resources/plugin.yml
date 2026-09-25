@@ -4,13 +4,11 @@ main: fr.ted30600.novabedrock.NovaBedrockPlugin
 api-version: '1.20'
 author: ted30600
 description: Lien Bedrock cliquable pour rejoindre un serveur Paper avec Geyser
-
 commands:
   bedrock:
     description: Affiche le bouton pour ajouter le serveur Bedrock
     usage: /bedrock
     permission: novabedrock.use
-
 permissions:
   novabedrock.use:
     description: Permet d'utiliser /bedrock
