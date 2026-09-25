@@ -1,26 +1,20 @@
-name: NovaLobby
-version: 1.1.0
-main: fr.ted30600.zombielogin.ZombieLoginPlugin
-api-version: '1.21'
+name: NovaBedrock
+version: 1.0.0
+main: fr.ted30600.novabedrock.NovaBedrockPlugin
+api-version: '1.20'
 author: ted30600
-description: NovaLobby - système de lobby et login pour Paper 1.21.10
+description: Lien Bedrock cliquable pour rejoindre un serveur Paper avec Geyser
+
 commands:
-  login:
-    description: Log into your account
-    usage: /login <password>
-  register:
-    description: Register your account
-    usage: /register <password> <password>
-  lobby:
-    description: Teleport to the lobby
-    usage: /lobby
-  setlobby:
-    description: Set the current location as the lobby
-    usage: /setlobby
-  resetpassword:
-    description: Reset a player's password
-    usage: /resetpassword <joueur>
+  bedrock:
+    description: Affiche le bouton pour ajouter le serveur Bedrock
+    usage: /bedrock
+    permission: novabedrock.use
+
 permissions:
-  novalobby.admin:
-    description: Manage NovaLobby, set the lobby and reset passwords
+  novabedrock.use:
+    description: Permet d'utiliser /bedrock
+    default: true
+  novabedrock.admin:
+    description: Permet de recharger la configuration
     default: op
