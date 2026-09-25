@@ -1,28 +1,19 @@
-# UltraLogin configuration
-messages:
-  login-required: "&cTu dois te connecter avec &e/login <mot de passe>&c."
-  register-required: "&eBienvenue ! &7Utilise &a/register <mot de passe> <mot de passe> &7pour créer ton compte."
-  login-success: "&aConnexion réussie ! &7Téléportation au lobby."
-  register-success: "&aCompte créé et connexion réussie ! &7Téléportation au lobby."
-  wrong-password: "&cMot de passe incorrect."
-  password-mismatch: "&cLes mots de passe ne correspondent pas."
-  already-registered: "&cTu es déjà enregistré. Utilise /login <mot de passe>."
-  not-registered: "&cTu n'es pas enregistré. Utilise /register <mot de passe> <mot de passe>."
-  usage-login: "&eUtilise : /login <mot de passe>"
-  usage-register: "&eUtilise : /register <mot de passe> <mot de passe>"
-  session-expired: "&cTa session a expiré. Connecte-toi avec /login <mot de passe>."
-  lobby-set: "&aLobby défini à ta position actuelle."
-  no-permission: "&cTu n'as pas la permission."
-settings:
-  kick-after-seconds: 60
-  session-timeout-minutes: 30
-  min-password-length: 4
+# Adresse PUBLIQUE accessible depuis Internet par les joueurs Bedrock.
+# Exemple : play.monserveur.fr
+bedrock-address: "127.0.0.1"
 
-# Le lobby est défini automatiquement avec /setlobby.
-lobby:
-  world: ""
-  x: 0.0
-  y: 100.0
-  z: 0.0
-  yaw: 0.0
-  pitch: 0.0
+# Port UDP utilisé par Geyser pour Bedrock.
+bedrock-port: 19132
+
+# Nom qui sera ajouté dans la liste des serveurs Bedrock.
+server-name: "Mon serveur"
+
+# Envoie automatiquement le bouton aux joueurs à leur connexion.
+auto-send-on-join: true
+
+messages:
+  prefix: "&b&lBedrock &8» &f"
+  button: "&a[ &f➜ AJOUTER LE SERVEUR BEDROCK &a]"
+  added: "&7Le serveur sera ajouté à ta liste Bedrock."
+  no-permission: "&cTu n'as pas la permission."
+  reloaded: "&aConfiguration rechargée."
