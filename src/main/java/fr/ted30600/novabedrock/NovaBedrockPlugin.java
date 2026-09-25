@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 public final class NovaBedrockPlugin extends JavaPlugin implements Listener {
     private static final LegacyComponentSerializer LEGACY =
@@ -54,8 +55,22 @@ public final class NovaBedrockPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         if (!getConfig().getBoolean("auto-send-on-join", true)) return;
+        if (!isBedrockPlayer(event.getPlayer().getUniqueId())) return;
+
         getServer().getScheduler().runTaskLater(this,
                 () -> sendBedrockLink(event.getPlayer()), 20L);
+    }
+
+    private boolean isBedrockPlayer(UUID uuid) {
+        try {
+            Class<?> apiClass = Class.forName("org.geysermc.floodgate.api.FloodgateApi");
+            Object api = apiClass.getMethod("getInstance").invoke(null);
+            return (boolean) apiClass
+                    .getMethod("isFloodgatePlayer", UUID.class)
+                    .invoke(api, uuid);
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            return false;
+        }
     }
 
     private void sendBedrockLink(Player player) {
