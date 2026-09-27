@@ -1,0 +1,27 @@
+name: Build BananaPlugin 1.21.11
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'bananaplugin/**'
+      - '.github/workflows/build-bananaplugin.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bananaplugin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Maven build
+        run: mvn -B clean package
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: BananaPlugin-1.21.11
+          path: bananaplugin/target/BananaPlugin-1.21.11.jar
