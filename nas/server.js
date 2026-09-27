@@ -94,10 +94,9 @@ app.get('/api/files', (req, res) => {
 });
 
 /*
- * Vidéos volumineuses :
- * le navigateur découpe la vidéo en morceaux de 25 Mo.
- * Chaque requête reste donc sous la limite Cloudflare de 100 Mo
- * des offres Free/Pro. Les morceaux sont écrits directement sur disque.
+ * Tous les fichiers passent maintenant par le même upload par morceaux.
+ * Cela évite les problèmes de multipart/multer rencontrés avec certains
+ * sélecteurs de fichiers Android et permet aussi les gros fichiers.
  */
 app.post('/api/upload/chunk', async (req, res) => {
   const manager = String(req.query.manager || '1');
@@ -105,8 +104,8 @@ app.post('/api/upload/chunk', async (req, res) => {
   const chunkIndex = Number(req.query.chunkIndex);
   const totalChunks = Number(req.query.totalChunks);
   const totalSize = Number(req.query.totalSize);
-  const originalName = safeFileName(String(req.query.filename || 'video'));
-  const mime = String(req.query.mime || 'video/mp4');
+  const originalName = safeFileName(String(req.query.filename || 'fichier'));
+  const mime = String(req.query.mime || 'application/octet-stream');
 
   if (!MANAGERS.includes(manager)) return res.status(400).json({ error: 'Gestionnaire invalide' });
   if (!validUploadId(uploadId)) return res.status(400).json({ error: 'Identifiant d’envoi invalide' });
@@ -115,11 +114,17 @@ app.post('/api/upload/chunk', async (req, res) => {
     return res.status(400).json({ error: 'Nombre de morceaux invalide' });
   }
   if (!Number.isSafeInteger(totalSize) || totalSize < 1 || totalSize > MAX_FILE_SIZE) {
-    return res.status(400).json({ error: 'Vidéo trop volumineuse' });
+    return res.status(400).json({ error: 'Fichier trop volumineux ou vide' });
   }
 
-  const contentLength = Number(req.headers['content-length'] || 0);
-  if (contentLength > CHUNK_SIZE) return res.status(413).json({ error: 'Morceau trop gros (maximum 25 Mo)' });
+  const contentLengthHeader = req.headers['content-length'];
+  const contentLength = contentLengthHeader === undefined ? null : Number(contentLengthHeader);
+  if (contentLength !== null && (!Number.isFinite(contentLength) || contentLength < 1)) {
+    return res.status(400).json({ error: 'Le morceau reçu est vide' });
+  }
+  if (contentLength !== null && contentLength > CHUNK_SIZE) {
+    return res.status(413).json({ error: 'Morceau trop gros (maximum 25 Mo)' });
+  }
 
   const dir = path.join(UPLOADS, uploadId);
   const partPath = path.join(dir, `${String(chunkIndex).padStart(8, '0')}.part`);
@@ -154,6 +159,10 @@ app.post('/api/upload/chunk', async (req, res) => {
 
     await pipeline(req, limiter, fs.createWriteStream(partPath, { flags: 'wx' }));
     const receivedBytes = (await fsp.stat(partPath)).size;
+    if (receivedBytes < 1) {
+      await fsp.unlink(partPath).catch(() => {});
+      throw new Error('Le morceau reçu est vide');
+    }
 
     res.json({ ok: true, chunkIndex, receivedBytes, totalChunks });
   } catch (err) {
@@ -182,7 +191,7 @@ app.post('/api/upload/complete', async (req, res) => {
     for (let i = 0; i < meta.totalChunks; i++) {
       const partPath = path.join(dir, `${String(i).padStart(8, '0')}.part`);
       const stat = await fsp.stat(partPath);
-      if (!stat.isFile() || stat.size > CHUNK_SIZE) throw new Error(`Morceau ${i + 1}/${meta.totalChunks} manquant ou invalide`);
+      if (!stat.isFile() || stat.size < 1 || stat.size > CHUNK_SIZE) throw new Error(`Morceau ${i + 1}/${meta.totalChunks} manquant ou vide`);
       parts.push(partPath);
       actualSize += stat.size;
     }
@@ -209,6 +218,12 @@ app.post('/api/upload/complete', async (req, res) => {
       throw err;
     }
 
+    const finalStat = await fsp.stat(finalPath);
+    if (finalStat.size !== meta.totalSize) {
+      await fsp.unlink(finalPath).catch(() => {});
+      throw new Error('Le fichier final est vide ou incomplet');
+    }
+
     const records = readJson(FILES_FILE);
     const record = {
       id: crypto.randomUUID(),
@@ -216,8 +231,8 @@ app.post('/api/upload/complete', async (req, res) => {
       originalName: meta.originalName,
       storedName,
       path: finalPath,
-      size: actualSize,
-      mime: meta.mime || 'video/mp4',
+      size: finalStat.size,
+      mime: meta.mime || 'application/octet-stream',
       createdAt: new Date().toISOString()
     };
 
@@ -225,9 +240,9 @@ app.post('/api/upload/complete', async (req, res) => {
     writeJson(FILES_FILE, records);
     await fsp.rm(dir, { recursive: true, force: true });
 
-    res.json({ ok: true, id: record.id, size: actualSize });
+    res.json({ ok: true, id: record.id, size: record.size });
   } catch (err) {
-    res.status(400).json({ error: err.message || 'Impossible de finaliser la vidéo' });
+    res.status(400).json({ error: err.message || 'Impossible de finaliser le fichier' });
   }
 });
 
@@ -247,6 +262,10 @@ app.post('/api/files', (req, res) => {
 
     const records = readJson(FILES_FILE);
     for (const file of req.files || []) {
+      if (!file.size) {
+        try { fs.unlinkSync(file.path); } catch {}
+        continue;
+      }
       records.push({
         id: crypto.randomUUID(), manager,
         originalName: safeFileName(file.originalname),
@@ -258,7 +277,7 @@ app.post('/api/files', (req, res) => {
       });
     }
     writeJson(FILES_FILE, records);
-    res.json({ ok: true, count: (req.files || []).length });
+    res.json({ ok: true, count: (req.files || []).filter(f=>f.size>0).length });
   });
 });
 
