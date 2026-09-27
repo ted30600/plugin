@@ -1,0 +1,15 @@
+name: BananaPlugin
+version: '2.0.0'
+main: fr.ted30600.bananaplugin.BananaPlugin
+api-version: '1.21'
+author: ted30600
+description: Lame Banane - masse, epee et lance
+commands:
+  arme:
+    description: Donne la Lame Banane
+    usage: /arme give banana [joueur]
+    permission: bananaplugin.give
+permissions:
+  bananaplugin.give:
+    description: Autorise la commande /arme give banana
+    default: op
