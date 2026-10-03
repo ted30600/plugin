@@ -4,9 +4,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>fr.ted30600</groupId>
-  <artifactId>RandomTeleport</artifactId>
+  <artifactId>NovaRTP</artifactId>
   <version>1.0.0</version>
-  <name>RandomTeleport</name>
+  <name>NovaRTP</name>
   <description>Menu de téléportation aléatoire pour Paper 1.21.10</description>
 
   <properties>
@@ -45,7 +45,7 @@
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.4.2</version>
         <configuration>
-          <finalName>RandomTeleport-1.0.0</finalName>
+          <finalName>NovaRTP-1.0.0</finalName>
         </configuration>
       </plugin>
     </plugins>
