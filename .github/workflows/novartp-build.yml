@@ -1,0 +1,31 @@
+name: Build NovaRTP
+
+on:
+  push:
+    paths:
+      - 'NovaRTP/**'
+      - '.github/workflows/novartp-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: NovaRTP
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build
+        run: mvn -B package
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: NovaRTP-1.0.0
+          path: NovaRTP/target/NovaRTP-1.0.0.jar
