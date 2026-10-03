@@ -1,9 +1,9 @@
-name: RandomTeleport
+name: NovaRTP
 version: '1.0.0'
 main: fr.ted30600.randomteleport.RandomTeleportPlugin
 api-version: '1.21.10'
 author: Ted30600
-description: Menu Random Teleport style FrostMC pour Paper 1.21.10
+description: Menu Random Teleport pour Paper 1.21.10
 
 commands:
   rtp:
