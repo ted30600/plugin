@@ -33,9 +33,42 @@ public final class RandomTeleportPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-        saveDefaultConfig();
+        setupDefaultConfig();
         Bukkit.getPluginManager().registerEvents(this, this);
         getLogger().info("NovaRTP actif pour Paper 1.21.10.");
+    }
+
+    private void setupDefaultConfig() {
+        getConfig().addDefault("menu.title", "&8Random Teleport | Menu");
+        getConfig().addDefault("menu.rows", 3);
+
+        getConfig().addDefault("teleport.min-distance", 500);
+        getConfig().addDefault("teleport.max-distance", 5000);
+        getConfig().addDefault("teleport.attempts", 40);
+        getConfig().addDefault("teleport.cooldown-seconds", 0);
+
+        getConfig().addDefault("worlds.overworld.enabled", true);
+        getConfig().addDefault("worlds.overworld.material", "GRASS_BLOCK");
+        getConfig().addDefault("worlds.overworld.name", "&aOverworld");
+        getConfig().addDefault("worlds.overworld.lore", List.of("&7Téléportation aléatoire", "&7dans le monde normal."));
+
+        getConfig().addDefault("worlds.nether.enabled", true);
+        getConfig().addDefault("worlds.nether.material", "NETHERRACK");
+        getConfig().addDefault("worlds.nether.name", "&cNether");
+        getConfig().addDefault("worlds.nether.lore", List.of("&7Téléportation aléatoire", "&7dans le Nether."));
+
+        getConfig().addDefault("worlds.end.enabled", true);
+        getConfig().addDefault("worlds.end.material", "END_STONE");
+        getConfig().addDefault("worlds.end.name", "&5The End");
+        getConfig().addDefault("worlds.end.lore", List.of("&7Téléportation aléatoire", "&7dans l'End."));
+
+        getConfig().addDefault("close.slot", 17);
+        getConfig().addDefault("close.material", "OAK_DOOR");
+        getConfig().addDefault("close.name", "&cFermer");
+        getConfig().addDefault("close.lore", List.of("&7Ferme le menu."));
+
+        getConfig().options().copyDefaults(true);
+        saveConfig();
     }
 
     @Override
@@ -135,9 +168,9 @@ public final class RandomTeleportPlugin extends JavaPlugin implements Listener {
         }
 
         cooldowns.put(player.getUniqueId(), now);
-        player.teleportAsync(location).thenAccept(success -> Bukkit.getScheduler().runTask(this, () -> {
-            player.sendMessage(success ? ChatColor.GREEN + "Téléportation effectuée !" : ChatColor.RED + "La téléportation a échoué.");
-        }));
+        player.teleportAsync(location).thenAccept(success -> Bukkit.getScheduler().runTask(this, () ->
+                player.sendMessage(success ? ChatColor.GREEN + "Téléportation effectuée !" : ChatColor.RED + "La téléportation a échoué.")
+        ));
     }
 
     private World findWorld(World.Environment environment) {
@@ -173,7 +206,7 @@ public final class RandomTeleportPlugin extends JavaPlugin implements Listener {
         int maxY = Math.min(world.getMaxHeight() - 3, 118);
         for (int y = maxY; y >= minY; y--) {
             Location location = new Location(world, x + 0.5, y, z + 0.5);
-            if (isSafe(location) && location.getBlock().getRelative(0, -1, 0).getType().isSolid()) return location;
+            if (isSafe(location)) return location;
         }
         return null;
     }
@@ -182,7 +215,8 @@ public final class RandomTeleportPlugin extends JavaPlugin implements Listener {
         Block feet = location.getBlock();
         Block head = feet.getRelative(0, 1, 0);
         Block floor = feet.getRelative(0, -1, 0);
-        return floor.getType().isSolid() && !floor.isLiquid() && feet.getType().isAir() && head.getType().isAir() && !feet.isLiquid() && !head.isLiquid();
+        return floor.getType().isSolid() && !floor.isLiquid() && feet.getType().isAir() && head.getType().isAir()
+                && !feet.isLiquid() && !head.isLiquid();
     }
 
     private Material material(String path, Material fallback) {
