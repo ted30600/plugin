@@ -1,0 +1,39 @@
+menu:
+  title: "§8Random Teleport | Menu"
+  rows: 3
+
+teleport:
+  min-distance: 500
+  max-distance: 5000
+  attempts: 40
+  cooldown-seconds: 0
+
+worlds:
+  overworld:
+    enabled: true
+    material: GRASS_BLOCK
+    name: "§aOverworld"
+    lore:
+      - "§7Téléportation aléatoire"
+      - "§7dans le monde normal."
+  nether:
+    enabled: true
+    material: NETHERRACK
+    name: "§cNether"
+    lore:
+      - "§7Téléportation aléatoire"
+      - "§7dans le Nether."
+  end:
+    enabled: true
+    material: END_STONE
+    name: "§5The End"
+    lore:
+      - "§7Téléportation aléatoire"
+      - "§7dans l'End."
+
+close:
+  slot: 17
+  material: OAK_DOOR
+  name: "§cFermer"
+  lore:
+    - "§7Ferme le menu."
