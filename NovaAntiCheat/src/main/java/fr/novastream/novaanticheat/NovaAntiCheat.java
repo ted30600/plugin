@@ -96,6 +96,7 @@ public final class NovaAntiCheat extends JavaPlugin implements Listener {
         recentHits.remove(id);
         oreStats.remove(id);
         knockback.remove(id);
+        lastAlerts.remove(id);
         pendingHitChecks.remove(id);
     }
 
@@ -115,16 +116,34 @@ public final class NovaAntiCheat extends JavaPlugin implements Listener {
         if (event.getFrom().distanceSquared(to) < 0.0001) return;
 
         // Check collision only at the player's feet and head; do not punish a single collision sample.
-        Location feet = to.clone();
-        Location head = to.clone().add(0, Math.max(0.2, player.getHeight() - 0.2), 0);
-        if (isSolidNonPassable(feet) || isSolidNonPassable(head)) {
-            flag(player, "Phase", "déplacement dans un bloc solide", 2);
+        if (overlapsSolidBlock(player, to) && !overlapsSolidBlock(player, event.getFrom())) {
+            flag(player, "Phase", "entrée dans le volume d'un bloc solide", 2);
         }
     }
 
-    private boolean isSolidNonPassable(Location location) {
-        Block block = location.getBlock();
-        return !block.isPassable() && block.getType().isSolid();
+    private boolean overlapsSolidBlock(Player player, Location location) {
+        org.bukkit.util.BoundingBox box = player.getBoundingBox().shift(
+                location.getX() - player.getLocation().getX(),
+                location.getY() - player.getLocation().getY(),
+                location.getZ() - player.getLocation().getZ());
+        World world = location.getWorld();
+        if (world == null) return false;
+        int minX = (int) Math.floor(box.getMinX());
+        int maxX = (int) Math.floor(box.getMaxX());
+        int minY = (int) Math.floor(box.getMinY());
+        int maxY = (int) Math.floor(box.getMaxY());
+        int minZ = (int) Math.floor(box.getMinZ());
+        int maxZ = (int) Math.floor(box.getMaxZ());
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    if (block.getType().isSolid() && !block.isPassable()
+                            && box.overlaps(block.getBoundingBox())) return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void samplePlayers() {
@@ -364,6 +383,17 @@ public final class NovaAntiCheat extends JavaPlugin implements Listener {
         return ChatColor.translateAlternateColorCodes('&', input == null ? "" : input);
     }
 
+    private static final class KnockbackProbe {
+        final double startX;
+        final double startZ;
+        int samples;
+        KnockbackProbe(double startX, double startZ, int samples) {
+            this.startX = startX;
+            this.startZ = startZ;
+            this.samples = samples;
+        }
+    }
+
     private static final class OreStats {
         int common;
         int rare;
@@ -379,5 +409,4 @@ public final class NovaAntiCheat extends JavaPlugin implements Listener {
     }
 
     private record OreEvent(long time, boolean common, boolean rare) {}
-    private record KnockbackProbe(double startX, double startZ, int samples) {}
 }
