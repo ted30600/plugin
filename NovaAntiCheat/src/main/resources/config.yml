@@ -16,6 +16,11 @@ movement:
   phase:
     enabled: true
 
+building:
+  scaffold:
+    enabled: true
+    underfoot-placements-per-second: 6
+
 combat:
   autoclicker:
     enabled: true
