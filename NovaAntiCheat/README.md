@@ -10,6 +10,7 @@ Plugin anti-triche en développement pour Paper 1.21.10, compilé avec Java 21. 
 - Reach : distance entre l'œil de l'attaquant et le centre de la cible.
 - KillAura : fréquence d'attaques anormalement élevée.
 - AntiKnockback : heuristique de déplacement après recul.
+- Scaffold : fréquence de placements de blocs sous les pieds (heuristique, alertes uniquement).
 - X-Ray : ratio de minerais rares par rapport aux blocs de roche minés.
 - Alertes staff/console, niveaux de violation (VL), configuration et commandes d'administration.
 
