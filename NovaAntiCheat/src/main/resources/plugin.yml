@@ -1,5 +1,5 @@
 name: NovaAntiCheat
-version: 0.1.0
+version: 0.2.0
 main: fr.novastream.novaanticheat.NovaAntiCheat
 api-version: '1.21'
 author: NovaStream
@@ -7,7 +7,7 @@ description: Anti-cheat heuristique pour Paper 1.21.10
 commands:
   novaac:
     description: Commandes d'administration de NovaAntiCheat
-    usage: /novaac reload
+    usage: /novaac [status|reload|vl <joueur>|reset <joueur> confirm]
     permission: novaanticheat.admin
 permissions:
   novaanticheat.admin:
@@ -16,3 +16,6 @@ permissions:
   novaanticheat.alerts:
     description: Reçoit les alertes anti-cheat
     default: op
+  novaanticheat.bypass:
+    description: Exempte un joueur des contrôles NovaAntiCheat
+    default: false
