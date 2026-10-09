@@ -1,27 +1,49 @@
 # NovaAntiCheat — Paper 1.21.10
 
-Première base du plugin anti-triche pour Paper 1.21.10 (Java 21).
+Plugin anti-triche en développement pour Paper 1.21.10, compilé avec Java 21. Ce projet est isolé dans ce sous-dossier pour ne pas remplacer les autres plugins du dépôt.
 
-## Détections prévues / première version
-- Contrôles de déplacement anormal (heuristique configurable).
-- Analyse heuristique des blocs rares minés pour signaler un possible X-Ray.
-- Alertes au staff et journalisation des détections.
-- Système de niveaux de suspicion (VL) conçu pour éviter les sanctions sur un seul événement.
+## Contrôles inclus dans cette base
+- Speed : échantillonnage des déplacements horizontaux.
+- Fly : signaux de suspension inhabituelle en l'air.
+- Phase : contrôle de collision avec les blocs.
+- AutoClicker : fréquence des animations de bras.
+- Reach : distance entre l'œil de l'attaquant et le centre de la cible.
+- KillAura : fréquence d'attaques anormalement élevée.
+- AntiKnockback : heuristique de déplacement après recul.
+- X-Ray : ratio de minerais rares par rapport aux blocs de roche minés.
+- Alertes staff/console, niveaux de violation (VL), configuration et commandes d'administration.
 
-## Important
-Aucun anti-cheat ne peut détecter parfaitement toutes les triches. Le X-Ray se détecte indirectement : un ratio de minerais rares élevé est un indice, pas une preuve. Les faux positifs sont possibles (mines naturelles, chance, effets, latence, plugins de gameplay). Cette première version envoie des alertes et ne bannit pas automatiquement par défaut. Teste-la sur un serveur de test avant toute sanction automatique.
+## Limites importantes
+Ceci est une première version heuristique, pas un anti-cheat commercial ni une garantie de détection. Plusieurs contrôles reposent sur les événements Bukkit et ne voient pas directement tous les paquets réseau. Les cheats peuvent contourner ces heuristiques. Fly, Phase et AntiKnockback peuvent générer des faux positifs selon la latence, les effets, les mécaniques personnalisées et les plugins de déplacement.
+
+Le X-Ray ne peut pas être prouvé par un simple ratio de minerais : la génération du monde, la fortune, les mines naturelles et les habitudes du joueur influencent les résultats. Baritone et certains aim-assists ne peuvent pas être identifiés de façon fiable par ces seuls événements.
+
+Les bannissements automatiques sont désactivés par défaut. Ne les activez pas sur un serveur public sans tests, réglage des seuils et observation des journaux. Aucun anti-cheat ne peut garantir de détecter toutes les triches instantanément sans faux positifs.
 
 ## Compilation
-Depuis le dossier `NovaAntiCheat`, avec Java 21 et Maven :
+Prérequis : Java 21 et Maven 3.9+. Dans le dossier `NovaAntiCheat` :
 ```bash
 mvn clean package
 ```
-Le JAR sera dans `target/NovaAntiCheat.jar`.
+Le fichier compilé sera `target/NovaAntiCheat.jar`.
+
+Une GitHub Action est configurée pour compiler le projet et publier le JAR comme artefact de workflow quand les fichiers du sous-dossier sont modifiés.
 
 ## Installation
-1. Copie `target/NovaAntiCheat.jar` dans le dossier `plugins/` du serveur Paper 1.21.10.
-2. Redémarre le serveur.
-3. Configure `plugins/NovaAntiCheat/config.yml`.
-4. Permission staff : `novaanticheat.alerts` (OP par défaut).
+1. Compile le projet ou récupère l'artefact de la GitHub Action.
+2. Dépose `NovaAntiCheat.jar` dans `plugins/` sur le serveur Paper 1.21.10.
+3. Redémarre le serveur et ajuste `plugins/NovaAntiCheat/config.yml` après des tests.
 
-Ce projet est ajouté dans un sous-dossier séparé afin de ne pas remplacer les autres plugins du dépôt parent.
+## Commandes
+- `/novaac status` — état du plugin.
+- `/novaac reload` — recharge la configuration.
+- `/novaac vl <joueur>` — affiche les violations du joueur.
+- `/novaac reset <joueur> confirm` — réinitialise ses violations.
+
+## Permissions
+- `novaanticheat.admin` — commandes (OP par défaut).
+- `novaanticheat.alerts` — alertes staff (OP par défaut).
+- `novaanticheat.bypass` — ignore les contrôles (non attribuée par défaut).
+
+## Sanctions automatiques
+`punishments.auto-ban` vaut `false` par défaut. Le seuil se règle avec `punishments.violation-threshold`. Activez cette option uniquement après une période de test : un VL n'est pas une preuve absolue de triche.
