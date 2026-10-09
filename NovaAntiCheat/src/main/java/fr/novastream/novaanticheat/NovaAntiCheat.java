@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
@@ -44,6 +45,7 @@ public final class NovaAntiCheat extends JavaPlugin implements Listener {
     private final Map<UUID, Deque<Long>> swings = new HashMap<>();
     private final Map<UUID, Deque<Long>> attacks = new HashMap<>();
     private final Map<UUID, Deque<Long>> recentHits = new HashMap<>();
+    private final Map<UUID, Deque<Long>> scaffoldPlaces = new HashMap<>();
     private final Map<UUID, OreStats> oreStats = new HashMap<>();
     private final Map<UUID, KnockbackProbe> knockback = new HashMap<>();
     private final Set<UUID> pendingHitChecks = new HashSet<>();
@@ -94,6 +96,7 @@ public final class NovaAntiCheat extends JavaPlugin implements Listener {
         swings.remove(id);
         attacks.remove(id);
         recentHits.remove(id);
+        scaffoldPlaces.remove(id);
         oreStats.remove(id);
         knockback.remove(id);
         lastAlerts.remove(id);
@@ -266,6 +269,25 @@ public final class NovaAntiCheat extends JavaPlugin implements Listener {
                 && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK
                 && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
             knockback.remove(player.getUniqueId());
+        }
+    }
+
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (!getConfig().getBoolean("building.scaffold.enabled", true)) return;
+        Player player = event.getPlayer();
+        if (isExempt(player) || player.isSneaking()) return;
+        int feetY = (int) Math.floor(player.getLocation().getY());
+        if (event.getBlockPlaced().getY() > feetY - 1) return;
+
+        long now = System.currentTimeMillis();
+        Deque<Long> placements = scaffoldPlaces.computeIfAbsent(player.getUniqueId(), ignored -> new ArrayDeque<>());
+        placements.addLast(now);
+        trimTimes(placements, now - 1000L);
+        int threshold = getConfig().getInt("building.scaffold.underfoot-placements-per-second", 6);
+        if (placements.size() >= threshold) {
+            flag(player, "Scaffold", placements.size() + " placements sous les pieds en 1 s", 2);
         }
     }
 
