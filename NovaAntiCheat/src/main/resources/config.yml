@@ -1,19 +1,43 @@
-# NovaAntiCheat - valeurs initiales prudentes
+# NovaAntiCheat — Paper 1.21.10 / Java 21
+# Réglez les seuils après des tests sur votre propre serveur.
 alerts:
   prefix: "&8[&bNovaAC&8] "
   console: true
+  cooldown-seconds: 10
+
 movement:
-  enabled: true
-  # Vitesse horizontale maximale par tick (heuristique, à ajuster selon le serveur).
-  max-horizontal-per-tick: 0.95
-  alert-level: 3
+  speed:
+    enabled: true
+    # Mesuré par échantillonnage serveur (blocs/tick). Valeur volontairement permissive.
+    max-horizontal-per-tick: 0.85
+  fly:
+    enabled: true
+  # Vérification de collision prudente ; peut nécessiter des ajustements selon les plugins de déplacement.
+  phase:
+    enabled: true
+
+combat:
+  autoclicker:
+    enabled: true
+    max-cps: 18
+  reach:
+    enabled: true
+    max-distance: 3.6
+    creative-distance: 5.0
+  killaura:
+    enabled: true
+    max-hits-per-second: 16
+  knockback:
+    enabled: true
+    min-displacement: 0.08
+
 xray:
   enabled: true
-  # Analyse par joueur sur une fenêtre de 15 minutes.
   window-minutes: 15
   minimum-stone-breaks: 80
   rare-ore-ratio-percent: 8.0
-  alert-level: 1
-# Aucun bannissement automatique dans cette version initiale.
+
+# Sécurité : laisser false tant que les détections n'ont pas été testées et ajustées.
 punishments:
   auto-ban: false
+  violation-threshold: 20
