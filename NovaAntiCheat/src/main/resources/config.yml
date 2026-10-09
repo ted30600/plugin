@@ -1,0 +1,19 @@
+# NovaAntiCheat - valeurs initiales prudentes
+alerts:
+  prefix: "&8[&bNovaAC&8] "
+  console: true
+movement:
+  enabled: true
+  # Vitesse horizontale maximale par tick (heuristique, à ajuster selon le serveur).
+  max-horizontal-per-tick: 0.95
+  alert-level: 3
+xray:
+  enabled: true
+  # Analyse par joueur sur une fenêtre de 15 minutes.
+  window-minutes: 15
+  minimum-stone-breaks: 80
+  rare-ore-ratio-percent: 8.0
+  alert-level: 1
+# Aucun bannissement automatique dans cette version initiale.
+punishments:
+  auto-ban: false
