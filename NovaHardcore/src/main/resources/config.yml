@@ -1,0 +1,8 @@
+world-name: hardcore
+fallback-world: world
+border-size: 2000
+messages:
+  eliminated: "&c☠ {player} a été éliminé du Hardcore !"
+  joined: "&aTu as rejoint le monde Hardcore. Attention : une seule vie !"
+  already-eliminated: "&cTu es éliminé de cette partie Hardcore."
+  reset-warning: "&eCette commande recrée le monde Hardcore et efface sa progression."
