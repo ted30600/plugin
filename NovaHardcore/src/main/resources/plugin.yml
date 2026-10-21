@@ -1,0 +1,19 @@
+name: NovaHardcore
+version: 1.0.0
+main: fr.novastream.novahardcore.NovaHardcore
+api-version: '1.21'
+depend: [Multiverse-Core]
+author: NovaStream
+description: Mode Hardcore indépendant pour Paper 1.21.11
+commands:
+  hardcore:
+    description: Commandes du mode NovaHardcore
+    usage: /hardcore <join|leave|classement|status|setborder|reset>
+    aliases: [hc]
+permissions:
+  novahardcore.admin:
+    description: Administrer NovaHardcore et réinitialiser la partie
+    default: op
+  novahardcore.play:
+    description: Rejoindre le mode Hardcore
+    default: true
