@@ -11,10 +11,11 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: maven
-      - run: mvn -B clean package
+      - working-directory: KamoofNova
+        run: mvn -B clean package
       - uses: actions/upload-artifact@v4
         with:
           name: NovaKamoof
-          path: target/NovaKamoof-1.0.0.jar
+          path: KamoofNova/target/NovaKamoof-1.0.0.jar
