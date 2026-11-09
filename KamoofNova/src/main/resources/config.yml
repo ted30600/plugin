@@ -1,0 +1,5 @@
+messages:
+  disguised: "&aTu as pris l'identité de &e%player%&a."
+  undisguised: "&aTu as retrouvé ton identité."
+  pact-bloody: "&cPacte Ensanglanté : +5 cœurs, mais 3 têtes à la prochaine mort."
+  pact-forgotten: "&7Pacte Oublié : pas de tête à la prochaine mort, mais Faiblesse permanente."
