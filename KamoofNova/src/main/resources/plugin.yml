@@ -1,7 +1,7 @@
 name: NovaKamoof
 version: 1.0.0
 main: fr.novastream.kamoof.NovaKamoof
-api-version: '1.21'
+api-version: '26.2'
 author: ted30600
 description: Kamoof-style SMP mechanics for NovaStream
 depend:
