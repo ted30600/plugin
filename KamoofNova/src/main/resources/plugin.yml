@@ -1,0 +1,18 @@
+name: NovaKamoof
+version: 1.0.0
+main: fr.novastream.kamoof.NovaKamoof
+api-version: '1.21'
+author: ted30600
+description: Kamoof-style SMP mechanics for NovaStream
+depend:
+  - NickAPI
+commands:
+  undisguise:
+    description: Retire ton identité volée
+  novakamoof:
+    description: Administration de NovaKamoof
+    aliases: [kamoofsmp]
+    permission: novakamoof.admin
+permissions:
+  novakamoof.admin:
+    default: op
