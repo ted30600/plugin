@@ -11,7 +11,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-import xyz.haoshoku.nick.api.NickAPI;
 import java.util.*;
 
 public final class NovaKamoof extends JavaPlugin implements Listener {
@@ -70,11 +69,11 @@ public final class NovaKamoof extends JavaPlugin implements Listener {
 
     private void disguise(Player p,String name){
         try{
-            NickAPI.setNick(p,name);
-            NickAPI.setSkin(p,name);
-            NickAPI.setUniqueId(p,name);
-            NickAPI.setProfileName(p,name);
-            NickAPI.refreshPlayer(p);
+            callNickApi("setNick", p, name);
+            callNickApi("setSkin", p, name);
+            callNickApi("setUniqueId", p, name);
+            callNickApi("setProfileName", p, name);
+            callNickApi("refreshPlayer", p);
             disguised.add(p.getUniqueId());
             p.sendMessage(color(getConfig().getString("messages.disguised").replace("%player%",name)));
         }catch(Throwable t){p.sendMessage("§cImpossible d'appliquer le déguisement. Vérifie NickAPI.");getLogger().warning(t.toString());}
@@ -82,8 +81,15 @@ public final class NovaKamoof extends JavaPlugin implements Listener {
 
     private void undisguise(Player p){
         if(!disguised.remove(p.getUniqueId())) return;
-        try{NickAPI.resetAll(p);NickAPI.refreshPlayer(p);}catch(Throwable t){getLogger().warning(t.toString());}
+        try{callNickApi("resetAll", p);callNickApi("refreshPlayer", p);}catch(Throwable t){getLogger().warning(t.toString());}
         p.sendMessage(color(getConfig().getString("messages.undisguised")));
+    }
+
+    private void callNickApi(String method, Object... args) throws Exception {
+        Class<?> api = Class.forName("xyz.haoshoku.nick.api.NickAPI");
+        Class<?>[] types = new Class<?>[args.length];
+        for (int i=0;i<args.length;i++) types[i] = args[i] instanceof Player ? Player.class : String.class;
+        api.getMethod(method, types).invoke(null, args);
     }
 
     private ItemStack createHead(Player p){
