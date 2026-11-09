@@ -1,6 +1,6 @@
 # NovaKamoof
 
-Plugin Paper 1.21.11 pour NovaStream, recréant les mécaniques publiques principales du Kamoof SMP Saison 2.
+Plugin Paper 26.2 pour NovaStream, recréant les mécaniques publiques principales du Kamoof SMP Saison 2.
 
 ## Fonctionnalités
 - Une tête de joueur est ajoutée au butin à sa mort.
@@ -17,7 +17,7 @@ Plugin Paper 1.21.11 pour NovaStream, recréant les mécaniques publiques princi
 3. Redémarrer Paper 1.21.11.
 
 ## Compilation
-Java 21 + Maven : mvn clean package
+Java 25 + Maven : mvn clean package
 Le JAR est créé dans target/NovaKamoof-1.0.0.jar.
 
 Projet indépendant : les mécaniques ont été réimplémentées à partir de la description publique du Kamoof SMP Saison 2.
