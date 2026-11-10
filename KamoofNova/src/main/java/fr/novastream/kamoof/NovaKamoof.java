@@ -27,7 +27,7 @@ public final class NovaKamoof extends JavaPlugin implements Listener {
             if (s instanceof Player p) undisguise(p);
             return true;
         });
-        Objects.requireNonNull(getCommand("novakamoof")).setExecutor((s,c,l,a) -> command(s,a));
+        Objects.requireNonNull(getCommand("novakamoof")).setExecutor((s,c,l,a) -> { command(s,a); return true; });
         getLogger().info("NovaKamoof 1.0.0 activé.");
     }
 
